@@ -114,9 +114,15 @@ class ChineseCalendarDate(_Date):
     # 与 datetime.date 相关的转换 ================================
 
     @classmethod
-    def from_date(cls, _date: date):
+    def from_date(cls, _date: date | tuple):
         """将公历日期转换为农历日期。"""
-        assert 0 < (n := _date.toordinal() - ORDINAL_OFFSET)
+        if isinstance(_date, tuple):
+            _d = date(*_date)
+        elif isinstance(_date, date):
+            _d = date
+        else:
+            raise TypeError
+        assert 0 < (n := _d.toordinal() - ORDINAL_OFFSET)
         return cls.from_ordinal(n)
 
     def to_date(self) -> date:

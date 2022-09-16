@@ -321,7 +321,7 @@ class ChineseCalendarDate(object):
         return cls.from_date(date.today())
 
     @classmethod
-    def from_date(cls, _date: date):
+    def from_date(cls, _date: date | tuple):
         """将公历日期转换为农历日期。"""
         raise NotImplementedError
 
