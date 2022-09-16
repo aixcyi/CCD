@@ -44,7 +44,7 @@ def _unzip_year(i):
     if year == 1900:
         return {(12, False): _last_day(11)}
     if year == 2100:
-        return {(_m, False): _last_day(_m) for _m in range(11)}
+        return {(_m + 1, False): _last_day(_m) for _m in range(11)}
 
     if not (_leap := INFO_LIST[i] >> 13):
         return {(m + 1, False): _last_day(m) for m in range(12)}
