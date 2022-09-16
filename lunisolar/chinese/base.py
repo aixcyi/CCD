@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from typing import ClassVar
 
 STEMS = '甲乙丙丁戊己庚辛壬癸'
 BRANCHES = '子丑壬卯辰巳午未申酉戌亥'
@@ -22,6 +23,9 @@ DAYS = {
 
 
 class ChineseCalendarDate(object):
+    min: ClassVar['ChineseCalendarDate'] = None
+    max: ClassVar['ChineseCalendarDate'] = None
+
     __slots__ = '_year', '_month', '_day', '_is_leap_month', '_hashcode'
 
     def __new__(cls, year: int, month=1, day=1, is_leap_month: bool = False):
