@@ -174,7 +174,30 @@ class ChineseCalendarDate(_Date):
 ChineseCalendarDate.min = ChineseCalendarDate(*CCD_MIN)
 ChineseCalendarDate.max = ChineseCalendarDate(*CCD_MAX)
 
-if __name__ == '__main__':
+
+def __check_translation():
     for i in range(73000, CCD_ORDINAL_MAX + 1):
         print(f'{i}\t', ChineseCalendarDate.from_ordinal(i))
-    print(ChineseCalendarDate(2100, 11, 30).to_ordinal())
+    print(ChineseCalendarDate.max.to_ordinal())
+    print(ChineseCalendarDate(*CCD_MAX).to_ordinal())
+
+
+def __speed_test():
+    from datetime import date, datetime
+    # from lunisolar.chinese.limited import ChineseCalendarDate
+
+    stamp = datetime.now().timestamp()
+    for i in range(1, date.max.toordinal() + 1):
+        str(date.fromordinal(i))
+    stamp = datetime.now().timestamp() - stamp
+    print(stamp)
+
+    stamp = datetime.now().timestamp()
+    for i in range(1, 73030):
+        str(ChineseCalendarDate.from_ordinal(i))
+    stamp = datetime.now().timestamp() - stamp
+    print(stamp)
+
+
+if __name__ == '__main__':
+    __speed_test()
