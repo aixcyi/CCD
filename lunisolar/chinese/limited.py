@@ -4,8 +4,7 @@ from lunisolar.chinese.base import ChineseCalendarDate as _Date
 
 DATE_MIN = (1901, 1, 20)
 DATE_MAX = (2100, 12, 30)
-DATE_ORDINAL_MIN = date(*DATE_MIN).toordinal()
-DATE_ORDINAL_MAX = date(*DATE_MAX).toordinal()
+ORDINAL_OFFSET = date(*DATE_MIN).toordinal() - 1
 
 CCD_MIN = (1900, 12, 1, False)
 """当前模块支持计算的最早的农历日期。\n
@@ -61,42 +60,23 @@ CCD_INFO = {
 }
 
 
-def _get_last_day(year, _month, is_leap_month=False):
-    """获取某月的最后一天。"""
-    if is_leap_month:
-        return 30 if CCD_INFO[year] >> 12 & 1 else 29
-    return 30 if CCD_INFO[year] >> _month & 1 > 0 else 29
-
-
-def _get_leap(year: int) -> int:
-    """获取某个农历年的闰月。如果没有将返回 ``0`` 。"""
-    return CCD_INFO[year] >> 13
-
-
-def _map_months(year: int) -> dict[tuple[int, bool], int]:
-    """
-    获取某个农历年所有月份的信息。
-
-    :param year: 农历年。
-    :return: 一个字典。值是对应月份的最大天数；
-             键是由一个整数和一个布尔值组成的元组，分别代表月份、是否为闰月。
-             月份会按照从前往后的时间顺序排列，正常枚举即可。
-    """
-
+def _unzip_year(year):
     def _last_day(_month):
-        return _get_last_day(year, _month)
+        return 30 if CCD_INFO[year] >> _month & 1 > 0 else 29
 
     if year == 1900:
         return {(12, False): _last_day(11)}
     if year == 2100:
-        return {(m + 1, False): _last_day(m) for m in range(11)}
+        return {(_m, False): _last_day(_m) for _m in range(11)}
 
-    # 当年的闰月，如果没有则为 0 。
-    if not (_leap := _get_leap(year)):
+    if not (_leap := CCD_INFO[year] >> 13):
         return {(m + 1, False): _last_day(m) for m in range(12)}
     months = [((m + 1, False), _last_day(m)) for m in range(12)] + [((_leap, True), _last_day(12))]
     months.sort()
     return dict(months)
+
+
+CCD_INFO = {_y: _unzip_year(_y) for _y in CCD_INFO}
 
 
 def _check_date_fields(year: int, month: int, day: int, is_leap_month: bool):
@@ -111,11 +91,12 @@ def _check_date_fields(year: int, month: int, day: int, is_leap_month: bool):
     if not CCD_MIN <= (year, month, day, is_leap_month) <= CCD_MAX:
         raise OverflowError('超出精度范围。请使用更高精度的 Calendar。')
 
-    if is_leap_month:
-        if month != _get_leap(year):
-            raise ValueError(f'月份不存在。')
+    try:
+        days = CCD_INFO[year][(month, is_leap_month)]
+    except KeyError:
+        tip = '闰' if is_leap_month else ''
+        raise ValueError(f'农历{year}年没有{tip}{month}月。')
 
-    days = _get_last_day(year, month - 1, is_leap_month)
     if day > days:
         raise ValueError(f'提供的农历日 {day} 超过了当月日期范围。')
 
@@ -130,13 +111,13 @@ class ChineseCalendarDate(_Date):
     # 历法推算 ================================
 
     def get_days_in_year(self) -> int:
-        return sum(_map_months(self._year).values())
+        return sum(CCD_INFO[self._year].values())
 
     def get_days_in_month(self) -> int:
-        return _map_months(self._year)[(self._month, self._is_leap_month)]
+        return CCD_INFO[self._year][(self._month, self._is_leap_month)]
 
     def get_day_of_year(self) -> int:
-        months = _map_months(self._year)
+        months = CCD_INFO[self._year]
         _month = (self._month, self._is_leap_month)
         return sum(days for m, days in months.items() if m < _month) + self._day
 
@@ -145,19 +126,19 @@ class ChineseCalendarDate(_Date):
     @classmethod
     def from_date(cls, _date: date):
         """将公历日期转换为农历日期。"""
-        assert 0 < (n := _date.toordinal() - DATE_ORDINAL_MIN)
+        assert 0 < (n := _date.toordinal() - ORDINAL_OFFSET)
         return cls.from_ordinal(n)
 
     def to_date(self) -> date:
         """将当前的农历日期转换为公历日期。"""
-        return date.fromordinal(DATE_ORDINAL_MIN + self.to_ordinal())
+        return date.fromordinal(ORDINAL_OFFSET + self.to_ordinal())
 
     # 与日戳相关的转换 ================================
 
     @classmethod
     def from_ordinal(cls, n: int):
         assert CCD_ORDINAL_MIN <= n <= CCD_ORDINAL_MAX
-        if n <= (d := _map_months(1900).popitem()[1]):
+        if n <= (d := CCD_INFO[1900][(12, False)]):
             _y, _m, _d, _leap = CCD_MIN
             _d = n
             return cls(_y, _m, _d, _leap)
@@ -165,12 +146,12 @@ class ChineseCalendarDate(_Date):
 
         # 按年循环减扣日戳 ----------------
         year = 1901
-        while n > (days := sum(_map_months(year).values())):
+        while n > (days := sum(CCD_INFO[year].values())):
             n -= days
             year += 1
 
         # 按月循环减扣日戳 ----------------
-        months = _map_months(year)
+        months = CCD_INFO[year]
         for month, days in months.items():
             if n > days:
                 n -= days
@@ -179,7 +160,7 @@ class ChineseCalendarDate(_Date):
 
     def to_ordinal(self) -> int:
         return self.get_day_of_year() + sum(
-            sum(_map_months(y).values()) for y in range(CCD_MIN[0], self._year)
+            sum(CCD_INFO[y].values()) for y in range(CCD_MIN[0], self._year)
         )
 
 
