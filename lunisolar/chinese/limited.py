@@ -1,4 +1,5 @@
 from datetime import date
+from typing import ClassVar
 
 from lunisolar.chinese.base import ChineseCalendarDate as _Date
 
@@ -7,14 +8,9 @@ DATE_MAX = (2100, 12, 30)
 ORDINAL_OFFSET = date(*DATE_MIN).toordinal() - 1
 
 CCD_MIN = (1900, 12, 1, False)
-"""当前模块支持计算的最早的农历日期。\n
-因为数据没有显示农历1900年十一月是不是闰月，故截断。"""
 CCD_MAX = (2100, 11, 30, False)
-"""当前模块支持计算的最晚的农历日期。\n
-因为数据没有显示农历2100年十二月是大月还是小月，故截断。"""
-CCD_ORDINAL_MIN = 1
-CCD_ORDINAL_MAX = 73029
-
+CCD_ORDINAL_MIN = 1  # ChineseCalendarDate.min.to_ordinal()
+CCD_ORDINAL_MAX = 73029  # ChineseCalendarDate.max.to_ordinal()
 CCD_INFO = {
     1900: 0x800,
     1901: 0x752, 1902: 0xea5, 1903: 0xab2a, 1904: 0x64b, 1905: 0xa9b,
@@ -102,6 +98,17 @@ def _check_date_fields(year: int, month: int, day: int, is_leap_month: bool):
 
 
 class ChineseCalendarDate(_Date):
+    min: ClassVar['ChineseCalendarDate'] = ...
+    """
+    当前模块支持计算的最早的农历日期。\n
+    因为数据没有显示农历1900年十一月是不是闰月，故截断。
+    """
+
+    max: ClassVar['ChineseCalendarDate'] = ...
+    """
+    当前模块支持计算的最晚的农历日期。\n
+    因为数据没有显示农历2100年十二月是大月还是小月，故截断。
+    """
 
     def __new__(cls, year: int, month=1, day=1, is_leap_month: bool = False):
         _check_date_fields(year, month, day, is_leap_month)
@@ -163,6 +170,9 @@ class ChineseCalendarDate(_Date):
             sum(CCD_INFO[y].values()) for y in range(CCD_MIN[0], self._year)
         )
 
+
+ChineseCalendarDate.min = ChineseCalendarDate(*CCD_MIN)
+ChineseCalendarDate.max = ChineseCalendarDate(*CCD_MAX)
 
 if __name__ == '__main__':
     for i in range(73000, CCD_ORDINAL_MAX + 1):
