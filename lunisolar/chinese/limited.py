@@ -125,7 +125,7 @@ class ChineseCalendarDate(_Date):
     def from_date(cls, _date: date | tuple):
         """将公历日期转换为农历日期。"""
         if isinstance(_date, tuple):
-            _d = date(*_date)
+            _d = date(*_date[:3])
         elif isinstance(_date, date):
             _d = date
         else:
