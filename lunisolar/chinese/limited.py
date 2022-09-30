@@ -105,8 +105,7 @@ class ChineseCalendarDate(_Date):
         maps = dict(CCD_INFO[_year])
         for month, days in maps.items():
             start = ChineseCalendarDate(2020, month[0], 1, month[1]).to_date()
-            stop = ChineseCalendarDate(2020, month[0], days, month[1]).to_date()
-            maps[month] = (days, start, stop)
+            maps[month] = (days, start)
         return maps
 
     def get_days_in_year(self) -> int:
