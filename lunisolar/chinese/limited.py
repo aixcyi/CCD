@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from datetime import date
 from typing import ClassVar
 
@@ -91,8 +92,8 @@ class ChineseCalendarDate(_Date):
     # 历法推算 ================================
 
     @staticmethod
-    def months(_year: int) -> dict[tuple[int, bool], int | tuple]:
-        maps = dict(CCD_INFO[_year])
+    def months(_year: int) -> OrderedDict[tuple[int, bool], int | tuple]:
+        maps = OrderedDict(CCD_INFO[_year])
         for month, days in maps.items():
             start = ChineseCalendarDate(_year, month[0], 1, month[1]).to_date()
             maps[month] = (days, start)
