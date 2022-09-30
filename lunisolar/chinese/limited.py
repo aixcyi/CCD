@@ -1,7 +1,7 @@
 from datetime import date
 from typing import ClassVar
 
-from lunisolar.chinese.base import ChineseCalendarDate as _Date
+from lunisolar.chinese.base import ChineseCalendarDate as _Date, _check_date_fields_basic
 
 DATE_MIN = (1901, 1, 20)
 DATE_MAX = (2100, 12, 30)
@@ -59,14 +59,7 @@ CCD_INFO: dict[int, dict[tuple[int, bool], int]] = {
 
 
 def _check_date_fields(year: int, month: int, day: int, is_leap_month: bool):
-    if not all(isinstance(v, int) for v in (year, month, day)):
-        raise TypeError('year、month、day 必须是整数类型。')
-    if is_leap_month not in (True, False):
-        raise TypeError('is_leap_month 必须是布尔类型。')
-    if not 1 <= month <= 12:
-        raise ValueError('农历月只能是一个从 1 到 12 的整数。')
-    if not 1 <= day <= 30:
-        raise ValueError('农历日只能是一个从 1 到 30 的整数。')
+    _check_date_fields_basic(year, month, day, is_leap_month)
     if not CCD_MIN <= (year, month, day, is_leap_month) <= CCD_MAX:
         raise OverflowError('超出精度范围。请使用更高精度的 Calendar。')
 
