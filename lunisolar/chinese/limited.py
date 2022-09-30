@@ -2,7 +2,10 @@ from collections import OrderedDict
 from datetime import date
 from typing import ClassVar
 
-from lunisolar.chinese.base import ChineseCalendarDate as _Date, _check_date_fields_basic
+from lunisolar.chinese.base import (
+    ChineseCalendarDate as _Date,
+    _check_date_fields_basic,
+)
 
 DATE_MIN = (1901, 1, 20)
 DATE_MAX = (2100, 12, 30)

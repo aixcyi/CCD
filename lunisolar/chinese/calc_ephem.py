@@ -4,7 +4,10 @@ from datetime import date, timedelta, datetime
 
 import ephem
 
-from lunisolar.chinese.base import ChineseCalendarDate as _Date, _check_date_fields_basic
+from lunisolar.chinese.base import (
+    ChineseCalendarDate as _Date,
+    _check_date_fields_basic,
+)
 
 
 def r2d(rad) -> float:
