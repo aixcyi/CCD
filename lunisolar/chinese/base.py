@@ -1,5 +1,5 @@
 from datetime import date, timedelta
-from typing import ClassVar, OrderedDict
+from typing import ClassVar, OrderedDict, NamedTuple
 
 STEMS = '甲乙丙丁戊己庚辛壬癸'
 BRANCHES = '子丑壬卯辰巳午未申酉戌亥'
@@ -20,6 +20,30 @@ DAYS = {
     9: '初九', 19: '十九', 29: '廿九',
     10: '初十', 20: '二十', 30: '三十',
 }
+
+
+class Month(NamedTuple):
+    """农历月份。"""
+
+    ordinal: int
+    """农历月的数字表达形式。"""
+
+    is_leap: bool = False
+    """是否为闰月。"""
+
+    __slots__ = ()
+
+
+class MonthInfo(NamedTuple):
+    """农历月份信息。"""
+
+    days: int
+    """当月总共有多少天。"""
+
+    start: date
+    """当月初一对应的公历日期。"""
+
+    __slots__ = ()
 
 
 def _check_date_fields_basic(year: int, month: int, day: int, is_leap_month: bool):
