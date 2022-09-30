@@ -63,13 +63,10 @@ def _check_date_fields(year: int, month: int, day: int, is_leap_month: bool):
     if not CCD_MIN <= (year, month, day, is_leap_month) <= CCD_MAX:
         raise OverflowError('超出精度范围。请使用更高精度的 Calendar。')
 
-    try:
-        days = CCD_INFO[year][(month, is_leap_month)]
-    except KeyError:
+    if (_month := (month, is_leap_month)) not in CCD_INFO[year]:
         tip = '闰' if is_leap_month else ''
         raise ValueError(f'农历{year}年没有{tip}{month}月。')
-
-    if day > days:
+    if not day <= CCD_INFO[year][_month]:
         raise ValueError(f'提供的农历日 {day} 超过了当月日期范围。')
 
 
