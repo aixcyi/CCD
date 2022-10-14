@@ -1,3 +1,14 @@
+"""
+定义农历日期的抽象类，并实现农历日期文本与数字转换的功能。
+
+提供的数据类型有：
+  - Month
+  - MonthInfo
+
+提供的抽象类有：
+  - ChineseCalendarDate
+"""
+
 from datetime import date, timedelta
 from typing import ClassVar, OrderedDict, NamedTuple
 
@@ -24,26 +35,22 @@ DAYS = {
 
 class Month(NamedTuple):
     """农历月份。"""
-
     ordinal: int
     """农历月的数字表达形式。"""
-
-    is_leap: bool = False
+    is_leap: bool
     """是否为闰月。"""
 
-    __slots__ = ()
+    __slots__ = ('ordinal', 'is_leap')
 
 
 class MonthInfo(NamedTuple):
     """农历月份信息。"""
-
     days: int
     """当月总共有多少天。"""
-
     start: date
     """当月初一对应的公历日期。"""
 
-    __slots__ = ()
+    __slots__ = ('days', 'start')
 
 
 def _check_date_fields_basic(year: int, month: int, day: int, is_leap_month: bool):
@@ -58,10 +65,10 @@ def _check_date_fields_basic(year: int, month: int, day: int, is_leap_month: boo
 
 
 class ChineseCalendarDate(object):
-    min: ClassVar['ChineseCalendarDate'] = None
-    max: ClassVar['ChineseCalendarDate'] = None
+    MIN: ClassVar['ChineseCalendarDate']
+    MAX: ClassVar['ChineseCalendarDate']
 
-    __slots__ = '_year', '_month', '_day', '_is_leap_month', '_hashcode'
+    __slots__ = '_year', '_month', '_day', '_leap', '_hashcode', 'MIN', 'MAX'
 
     def __new__(cls, year: int, month=1, day=1, is_leap_month: bool = False):
         """
@@ -81,7 +88,7 @@ class ChineseCalendarDate(object):
         self._year = year
         self._month = month
         self._day = day
-        self._is_leap_month = is_leap_month
+        self._leap = is_leap_month
         self._hashcode = -1
         return self
 
@@ -99,7 +106,7 @@ class ChineseCalendarDate(object):
             self._year if _year is None else _year,
             self._month if _month is None else _month,
             self._day if _day is None else _day,
-            self._is_leap_month if _is_leap_month not in (True, False) else _is_leap_month,
+            self._leap if _is_leap_month not in (True, False) else _is_leap_month,
         )
 
     # 属性相关 ================================
@@ -122,7 +129,7 @@ class ChineseCalendarDate(object):
     @property
     def is_leap_month(self) -> bool:
         """当月是否为闰月。"""
-        return self._is_leap_month
+        return self._leap
 
     @property
     def year_stem_branch(self) -> str:
@@ -203,7 +210,7 @@ class ChineseCalendarDate(object):
     def __hash__(self):
         if self._hashcode == -1:
             yhi, ylo = divmod(self._year, 256)
-            mon = self._month | (128 if self._is_leap_month else 0)
+            mon = self._month | (128 if self._leap else 0)
             code = bytes([yhi, ylo, mon, self._day])
             self._hashcode = hash(code)
         return self._hashcode
@@ -279,7 +286,7 @@ class ChineseCalendarDate(object):
 
     def timetuple(self) -> tuple:
         """获取组成日期的所有部分。"""
-        return self._year, self._month, self._day, self._is_leap_month
+        return self._year, self._month, self._day, self._leap
 
     # 与字符串相关的转换 ================================
 
@@ -290,7 +297,7 @@ class ChineseCalendarDate(object):
             self._year,
             self._month,
             self._day,
-            self._is_leap_month,
+            self._leap,
         )
 
     def __str__(self):
@@ -342,7 +349,7 @@ class ChineseCalendarDate(object):
         """
 
         def translate():
-            leap = '闰' if self._is_leap_month else ''
+            leap = '闰' if self._leap else ''
             i, n = 0, len(fmt)
             while i < n:
                 if fmt[i] != '%':

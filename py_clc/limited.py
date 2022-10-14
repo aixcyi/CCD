@@ -2,7 +2,7 @@ from collections import OrderedDict
 from datetime import date
 from typing import ClassVar
 
-from lunisolar.chinese.base import (
+from py_clc.base import (
     ChineseCalendarDate as _Date,
     _check_date_fields_basic,
 )
@@ -13,8 +13,8 @@ ORDINAL_OFFSET = date(*DATE_MIN).toordinal() - 1
 
 CCD_MIN = (1900, 12, 1, False)
 CCD_MAX = (2100, 11, 30, False)
-CCD_ORDINAL_MIN = 1  # ChineseCalendarDate.min.to_ordinal()
-CCD_ORDINAL_MAX = 73029  # ChineseCalendarDate.max.to_ordinal()
+CCD_ORDINAL_MIN = 1  # ChineseCalendarDate.MIN.to_ordinal()
+CCD_ORDINAL_MAX = 73029  # ChineseCalendarDate.MAX.to_ordinal()
 INFO_LIST = [
     0x0800,  # 1900
     0x0752, 0x0ea5, 0xab2a, 0x064b, 0x0a9b, 0x9aa6, 0x056a, 0x0b59, 0x4baa, 0x0752,  # 1901-1910
@@ -75,13 +75,13 @@ def _check_date_fields(year: int, month: int, day: int, is_leap_month: bool):
 
 
 class ChineseCalendarDate(_Date):
-    min: ClassVar['ChineseCalendarDate'] = ...
+    MIN: ClassVar['ChineseCalendarDate'] = ...
     """
     当前模块支持计算的最早的农历日期。\n
     因为数据没有显示农历1900年十一月是不是闰月，故截断。
     """
 
-    max: ClassVar['ChineseCalendarDate'] = ...
+    MAX: ClassVar['ChineseCalendarDate'] = ...
     """
     当前模块支持计算的最晚的农历日期。\n
     因为数据没有显示农历2100年十二月是大月还是小月，故截断。
@@ -106,11 +106,11 @@ class ChineseCalendarDate(_Date):
         return sum(CCD_INFO[self._year].values())
 
     def get_days_in_month(self) -> int:
-        return CCD_INFO[self._year][(self._month, self._is_leap_month)]
+        return CCD_INFO[self._year][(self._month, self._leap)]
 
     def get_day_of_year(self) -> int:
         months = CCD_INFO[self._year]
-        _month = (self._month, self._is_leap_month)
+        _month = (self._month, self._leap)
         return sum(days for m, days in months.items() if m < _month) + self._day
 
     # 与 datetime.date 相关的转换 ================================
@@ -175,7 +175,7 @@ def __check_translation():
 
 def __speed_test():
     from datetime import date, datetime
-    # from lunisolar.chinese.limited import ChineseCalendarDate
+    # from py_clc.limited import ChineseCalendarDate
 
     stamp = datetime.now().timestamp()
     for i in range(1, date.max.toordinal() + 1):

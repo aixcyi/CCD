@@ -4,7 +4,7 @@ from datetime import date, timedelta, datetime
 
 import ephem
 
-from lunisolar.chinese.base import (
+from py_clc.base import (
     ChineseCalendarDate as _Date,
     _check_date_fields_basic,
 )
@@ -150,11 +150,11 @@ class ChineseCalendarDate(_Date):
 
     def get_days_in_month(self) -> int:
         months = self.months(self._year)
-        return months[(self._month, self._is_leap_month)][0]
+        return months[(self._month, self._leap)][0]
 
     def get_day_of_year(self) -> int:
         months = self.months(self._year)
-        _month = (self._month, self._is_leap_month)
+        _month = (self._month, self._leap)
         return sum(days for m, days in months.items() if m < _month) + self._day
 
     @classmethod
@@ -181,7 +181,7 @@ class ChineseCalendarDate(_Date):
 
     def to_date(self) -> date:
         months = _enum_months(self._year - (1 if self._month < 11 else 0))
-        start = months[(self._month, self._is_leap_month)][1]
+        start = months[(self._month, self._leap)][1]
         return start + timedelta(days=self._day)
 
     @classmethod
