@@ -113,6 +113,35 @@ class ChineseCalendarDate(_Date):
         _month = (self._month, self._leap)
         return sum(days for m, days in months.items() if m < _month) + self._day
 
+    # 历法推算 ================================
+
+    def __add__(self, other):
+        if isinstance(other, timedelta):
+            if (days := other.days) == 0:
+                return self.replace()
+            if days < 0:
+                return self.__sub__(-other)
+            n = self.to_ordinal() + days
+            return self.from_ordinal(n)
+        raise NotImplementedError
+
+    __radd__ = __add__
+
+    def __sub__(self, other):
+        if isinstance(other, timedelta):
+            if (days := other.days) == 0:
+                return self.replace()
+            if days < 0:
+                return self.__add__(-other)
+            n = self.to_ordinal() - days
+            assert 0 < n
+            return self.from_ordinal(n)
+        elif isinstance(other, _Date):
+            n = self.to_ordinal() - other.to_ordinal()
+            assert 0 < n
+            return self.from_ordinal(n)
+        raise NotImplementedError
+
     # 与 datetime.date 相关的转换 ================================
 
     @classmethod

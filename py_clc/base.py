@@ -236,30 +236,12 @@ class ChineseCalendarDate(object):
         raise NotImplementedError
 
     def __add__(self, other):
-        if isinstance(other, timedelta):
-            if (days := other.days) == 0:
-                return self.replace()
-            if days < 0:
-                return self.__sub__(-other)
-            n = self.to_ordinal() + days
-            return self.from_ordinal(n)
         raise NotImplementedError
 
-    __radd__ = __add__
+    def __radd__(self, other):
+        raise NotImplementedError
 
     def __sub__(self, other):
-        if isinstance(other, timedelta):
-            if (days := other.days) == 0:
-                return self.replace()
-            if days < 0:
-                return self.__add__(-other)
-            n = self.to_ordinal() - days
-            assert 0 < n
-            return self.from_ordinal(n)
-        elif isinstance(other, ChineseCalendarDate):
-            n = self.to_ordinal() - other.to_ordinal()
-            assert 0 < n
-            return self.from_ordinal(n)
         raise NotImplementedError
 
     def get_days_in_year(self) -> int:
