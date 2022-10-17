@@ -207,14 +207,6 @@ class ChineseCalendarDate(object):
         y = other.timetuple()
         return 0 if x == y else 1 if x > y else -1
 
-    def __hash__(self):
-        if self._hashcode == -1:
-            yhi, ylo = divmod(self._year, 256)
-            mon = self._month | (128 if self._leap else 0)
-            code = bytes([yhi, ylo, mon, self._day])
-            self._hashcode = hash(code)
-        return self._hashcode
-
     # 历法推算 ================================
 
     @staticmethod
@@ -283,6 +275,14 @@ class ChineseCalendarDate(object):
         raise NotImplementedError
 
     # 基本转换 ================================
+
+    def __hash__(self):
+        if self._hashcode == -1:
+            yhi, ylo = divmod(self._year, 256)
+            mon = self._month | (128 if self._leap else 0)
+            code = bytes([yhi, ylo, mon, self._day])
+            self._hashcode = hash(code)
+        return self._hashcode
 
     def timetuple(self) -> tuple:
         """获取组成日期的所有部分。"""
