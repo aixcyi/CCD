@@ -1,23 +1,15 @@
 """
-定义农历日期的抽象类，并实现农历日期文本与数字转换的功能。
-
-提供的数据类型有：
-  - Month
-  - MonthInfo
-
-提供的抽象类有：
-  - ChineseCalendarDate
+定义农历日期的抽象类，其中实现了农历日期文本与数字转换的功能。
 """
 
-from datetime import date, timedelta
-from typing import ClassVar, OrderedDict, NamedTuple
+from datetime import date
 
 STEMS = '甲乙丙丁戊己庚辛壬癸'
 BRANCHES = '子丑壬卯辰巳午未申酉戌亥'
 ZODIACS = '鼠牛虎兔龙蛇马羊猴鸡狗猪'
 MONTHS = {
     1: '正', 2: '二', 3: '三', 4: '四', 5: '五', 6: '六',
-    7: '七', 8: '八', 9: '九', 10: '十', 11: '十一', 12: '十二'
+    7: '七', 8: '八', 9: '九', 10: '十', 11: '十一', 12: '十二',
 }
 DAYS = {
     1: '初一', 11: '十一', 21: '廿一',
@@ -33,28 +25,12 @@ DAYS = {
 }
 
 
-class Month(NamedTuple):
-    """农历月份。"""
-    ordinal: int
-    """农历月的数字表达形式。"""
-    is_leap: bool
-    """是否为闰月。"""
-
-    __slots__ = ('ordinal', 'is_leap')
-
-
-class MonthInfo(NamedTuple):
-    """农历月份信息。"""
-    days: int
-    """当月总共有多少天。"""
-    start: date
-    """当月初一对应的公历日期。"""
-
-    __slots__ = ('days', 'start')
-
-
-def _check_date_fields_basic(year: int, month: int, day: int, is_leap_month: bool):
-    if not all(isinstance(v, int) for v in (year, month, day)):
+def _check_date_fields(year: int, month: int, day: int, is_leap_month: bool):
+    if (
+            not isinstance(year, int) or
+            not isinstance(month, int) or
+            not isinstance(day, int)
+    ):
         raise TypeError('year、month、day 必须是整数类型。')
     if is_leap_month not in (True, False):
         raise TypeError('is_leap_month 必须是布尔类型。')
@@ -65,10 +41,7 @@ def _check_date_fields_basic(year: int, month: int, day: int, is_leap_month: boo
 
 
 class ChineseCalendarDate(object):
-    MIN: ClassVar['ChineseCalendarDate']
-    MAX: ClassVar['ChineseCalendarDate']
-
-    __slots__ = '_year', '_month', '_day', '_leap', '_hashcode', 'MIN', 'MAX'
+    __slots__ = '_year', '_month', '_day', '_leap', '_hashcode'
 
     def __new__(cls, year: int, month=1, day=1, is_leap_month: bool = False):
         """
@@ -109,6 +82,19 @@ class ChineseCalendarDate(object):
             self._leap if _is_leap_month not in (True, False) else _is_leap_month,
         )
 
+    @classmethod
+    def _new(cls, y, m, d, leap):
+        self = ChineseCalendarDate.__new__(cls, y, m, d, leap)
+        return self
+
+    def _replace(self, _year=None, _month=None, _day=None, _is_leap_month=None):
+        return self._new(
+            self._year if _year is None else _year,
+            self._month if _month is None else _month,
+            self._day if _day is None else _day,
+            self._leap if _is_leap_month not in (True, False) else _is_leap_month,
+        )
+
     # 属性相关 ================================
 
     @property
@@ -118,18 +104,33 @@ class ChineseCalendarDate(object):
 
     @property
     def month(self) -> int:
-        """农历月份。"""
+        """农历月份。取值范围是 ``1`` 到 ``12`` 。"""
         return self._month
 
     @property
     def day(self) -> int:
-        """农历日（这个月的哪一天）。"""
+        """农历日（即，这个月的第几天）。取值范围是 ``1`` 到 ``30`` 。"""
         return self._day
 
     @property
     def is_leap_month(self) -> bool:
         """当月是否为闰月。"""
         return self._leap
+
+    @property
+    def days_in_year(self) -> int:
+        """当年总共有多少天。"""
+        raise NotImplementedError
+
+    @property
+    def days_in_month(self) -> int:
+        """当月总共有多少天。"""
+        raise NotImplementedError
+
+    @property
+    def day_of_year(self) -> int:
+        """当天是自正月初一开始的第几天。"""
+        raise NotImplementedError
 
     @property
     def year_stem_branch(self) -> str:
@@ -209,32 +210,6 @@ class ChineseCalendarDate(object):
 
     # 历法推算 ================================
 
-    @staticmethod
-    def months(_year: int) -> OrderedDict[tuple[int, bool], tuple[int, date]]:
-        """
-        获取全年的农历月份信息。
-
-        :param _year: 农历年。
-        :return: 一个字典。键为由整数和布尔值组成的月份。
-                 值为一个元组，包括当月总天数（int）和初一对应公历日期（datetime.date）。
-        """
-        # 2020 -> {
-        #     (1, False): (29, (2020, 1, 25)),
-        #     (2, False): (30, (2020, 2, 23)),
-        #     (3, False): (30, (2020, 3, 24)),
-        #     (4, False): (30, (2020, 4, 23)),
-        #     (4, True): (29, (2020, 5, 23)),
-        #     (5, False): (30, (2020, 6, 21)),
-        #     (6, False): (29, (2020, 7, 21)),
-        #     (7, False): (29, (2020, 8, 19)),
-        #     (8, False): (30, (2020, 9, 17)),
-        #     (9, False): (29, (2020, 10, 17)),
-        #     (10, False): (30, (2020, 11, 15)),
-        #     (11, False): (29, (2020, 12, 15)),
-        #     (12, False): (30, (2021, 1, 13))
-        # }
-        raise NotImplementedError
-
     def __add__(self, other):
         raise NotImplementedError
 
@@ -242,18 +217,6 @@ class ChineseCalendarDate(object):
         raise NotImplementedError
 
     def __sub__(self, other):
-        raise NotImplementedError
-
-    def get_days_in_year(self) -> int:
-        """求当年总共有多少天。"""
-        raise NotImplementedError
-
-    def get_days_in_month(self) -> int:
-        """求当月总共有多少天。"""
-        raise NotImplementedError
-
-    def get_day_of_year(self) -> int:
-        """求当天是自当年开始后的第几天。"""
         raise NotImplementedError
 
     # 基本转换 ================================
@@ -371,7 +334,7 @@ class ChineseCalendarDate(object):
         return cls.from_date(date.today())
 
     @classmethod
-    def from_date(cls, _date: date | tuple):
+    def from_date(cls, _date: date):
         """将公历日期转换为农历日期。"""
         raise NotImplementedError
 

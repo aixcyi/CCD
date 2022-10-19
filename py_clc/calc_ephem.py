@@ -6,7 +6,7 @@ import ephem
 
 from py_clc.base import (
     ChineseCalendarDate as _Date,
-    _check_date_fields_basic,
+    _check_date_fields as _check_date_fields_basic,
 )
 
 
@@ -144,15 +144,18 @@ class ChineseCalendarDate(_Date):
         ))
         return _curr
 
-    def get_days_in_year(self) -> int:
+    @property
+    def days_in_year(self) -> int:
         months = self.months(self._year)
         return sum(months[month][0] for month in months)
 
-    def get_days_in_month(self) -> int:
+    @property
+    def days_in_month(self) -> int:
         months = self.months(self._year)
         return months[(self._month, self._leap)][0]
 
-    def get_day_of_year(self) -> int:
+    @property
+    def day_of_year(self) -> int:
         months = self.months(self._year)
         _month = (self._month, self._leap)
         return sum(days for m, days in months.items() if m < _month) + self._day
