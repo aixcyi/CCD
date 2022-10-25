@@ -1,13 +1,11 @@
 import math
 from collections import OrderedDict
 from datetime import date, timedelta, datetime
+from typing import NoReturn
 
 import ephem
 
-from py_clc.base import (
-    ChineseCalendarDate as _Date,
-    _check_date_fields as _check_date_fields_basic,
-)
+from py_clc.base import ChineseCalendarDate as _Date
 
 
 def r2d(rad) -> float:
@@ -112,25 +110,34 @@ def _enum_months(_year: int) -> OrderedDict[tuple[int, bool], tuple[int, date]]:
     raise RuntimeError(f'合朔超过十二次但没有找到 {_year} 年的闰月。')
 
 
-def _check_date_fields(year: int, month: int, day: int, is_leap_month: bool):
-    _check_date_fields_basic(year, month, day, is_leap_month)
-
-    # 岁首在十一月，所以如果提供的农历月在十一月之后，就需要枚举下一个农历年的农历月。
-    months = _enum_months(year if month < 11 else (year + 1))
-
-    if (_month := (month, is_leap_month)) not in months:
-        tip = '闰' if is_leap_month else ''
-        raise ValueError(f'农历{year}年没有{tip}{month}月。')
-    if not day <= months[_month][0]:
-        raise ValueError(f'提供的农历日 {day} 超过了当月日期范围。')
-
-
 class ChineseCalendarDate(_Date):
 
     def __new__(cls, year: int, month=1, day=1, is_leap_month: bool = False):
-        _check_date_fields(year, month, day, is_leap_month)
+        cls._check_date_fields(year, month, day, is_leap_month)
         self = _Date.__new__(cls, year, month, day, is_leap_month)
         return self
+
+    # 静态方法 ================================
+
+    @classmethod
+    def _check_date_fields(cls,
+                           year: int,
+                           month: int,
+                           day: int,
+                           is_leap_month: bool) -> NoReturn:
+        super()._check_date_fields(
+            year, month, day, is_leap_month
+        )
+        # 岁首在十一月，所以如果提供的农历月在十一月之后，就需要枚举下一个农历年的农历月。
+        months = _enum_months(year if month < 11 else (year + 1))
+
+        if (_month := (month, is_leap_month)) not in months:
+            prefix = '闰' if is_leap_month else ''
+            raise ValueError(f'农历{year}年没有{prefix}{month}月。')
+        if not day <= months[_month][0]:
+            raise ValueError(f'提供的农历日 {day} 超过了当月日期范围。')
+
+    # 只读属性 ================================
 
     @staticmethod
     def months(_year: int):
