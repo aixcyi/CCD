@@ -141,47 +141,77 @@ class ChineseCalendarDate(_Date):
     因为数据没有显示农历2100年十二月是大月还是小月，故舍弃。
     """
 
+    # 构造方法 ================================
+
     def __new__(cls, year, month: int = 1, day: int = 1, is_leap_month: bool = False):
         cls._check_date_fields(year, month, day, is_leap_month)
         self = _Date.__new__(cls, year, month, day, is_leap_month)
         return self
 
-    # 静态方法 ================================
+    @classmethod
+    def from_date(cls, _date: date):
+        """
+        将公历日期转换为农历日期。
+
+        :param _date: 公历日期。
+        :raise TypeError:
+        :raise OverflowError:
+        """
+        if not isinstance(_date, date):
+            raise TypeError(
+                '只接受 datetime.date 及其衍生类型的公历日期。'
+            )
+        if not DATE_MIN <= _date <= DATE_MAX:
+            raise OverflowError(
+                '公历日期超出农历算法转换范围。'
+            )
+        starts = list(NEW_MOONS.keys())
+        le, ri, mid = 0, len(starts) - 1, len(starts) // 2
+        while ri - le > 1:
+            if starts[mid] < _date:
+                le = mid
+            elif starts[mid] > _date:
+                ri = mid
+            else:
+                start = starts[mid]
+                break
+            mid = le + (ri - le) // 2
+        else:
+            start = starts[mid]
+
+        y, m, leap, days = NEW_MOONS[start]
+        offset = int((_date - start) / timedelta(days=1))
+        return _Date.__new__(cls, y, m, offset + 1, leap)
 
     @classmethod
-    def _check_date_fields(cls,
-                           year: int,
-                           month: int,
-                           day: int,
-                           is_leap_month: bool) -> NoReturn:
-        # 类型检查
-        y, m, d, leap = year, month, day, is_leap_month
-        super()._check_date_fields(y, m, d, leap)
-
-        # 精度检查
-        if not CCD_MIN <= (y, m, d, leap) <= CCD_MAX:
+    def from_ordinal(cls, __n: int):
+        if not CCD_ORDINAL_MIN <= __n <= CCD_ORDINAL_MAX:
             raise OverflowError(
-                '超出精度范围。请使用更高精度的历法算法。\n'
-                '本类支持的精度范围是：{0} 至 {1}'.format(
-                    ChineseCalendarDate.MIN.strftime(),
-                    ChineseCalendarDate.MAX.strftime(),
-                )
+                '超出农历日期范围。'
             )
-        prefix = '闰' if leap else ''
-        if (month := Month(y, m, leap)) not in MONTHS:
-            raise ValueError(
-                f'农历{y}年没有{prefix}{m}月。'
-            )
-        if not d <= MONTHS[month].days:
-            raise ValueError(
-                f'提供的农历日 {d} 不在农历{y}年{prefix}{m}月中。'
-            )
+        ordinals = tuple(ORDINALS.values())
+        le, ri, mid = 1, len(ordinals) - 1, len(ordinals) // 2
+        while ri - le > 1:
+            if ordinals[mid] < __n:
+                le = mid
+            elif ordinals[mid] > __n:
+                ri = mid
+            else:
+                mi = mid
+                break
+            mid = le + (ri - le) // 2
+        else:
+            mi = mid
+
+        month = tuple(ORDINALS.keys())[mi]
+        y, m, leap = month
+        d = __n - ORDINALS[month]
+        return _Date.__new__(cls, y, m, d, leap)
 
     # 只读属性 ================================
 
     @property
     def days_in_year(self) -> int:
-        # mt == Month Tuple
         return sum(inf.days for mt, inf in MONTHS.items() if mt.year == self._year)
 
     @property
@@ -195,7 +225,7 @@ class ChineseCalendarDate(_Date):
         month = Month(self._year, self._month, self._leap)
         return sum(inf.days for mt, inf in months.items() if mt < month) + self._day
 
-    # 历法推算 ================================
+    # 计算方法 ================================
 
     def __add__(self, other):
         if not isinstance(other, timedelta):
@@ -233,42 +263,7 @@ class ChineseCalendarDate(_Date):
             return self.__add__(-other)
         return self.from_ordinal(self.to_ordinal() - delta)
 
-    # 与 datetime.date 相关的转换 ================================
-
-    @classmethod
-    def from_date(cls, _date: date):
-        """
-        将公历日期转换为农历日期。
-
-        :param _date: 公历日期。
-        :raise TypeError:
-        :raise OverflowError:
-        """
-        if not isinstance(_date, date):
-            raise TypeError(
-                '只接受 datetime.date 及其衍生类型的公历日期。'
-            )
-        if not DATE_MIN <= _date <= DATE_MAX:
-            raise OverflowError(
-                '公历日期超出农历算法转换范围。'
-            )
-        starts = list(NEW_MOONS.keys())
-        le, ri, mid = 0, len(starts) - 1, len(starts) // 2
-        while ri - le > 1:
-            if starts[mid] < _date:
-                le = mid
-            elif starts[mid] > _date:
-                ri = mid
-            else:
-                start = starts[mid]
-                break
-            mid = le + (ri - le) // 2
-        else:
-            start = starts[mid]
-
-        y, m, leap, days = NEW_MOONS[start]
-        offset = int((_date - start) / timedelta(days=1))
-        return _Date.__new__(cls, y, m, offset + 1, leap)
+    # 转换器 ================================
 
     def to_date(self) -> date:
         """
@@ -277,39 +272,40 @@ class ChineseCalendarDate(_Date):
         month = Month(self._year, self._month, self._leap)
         return MONTHS[month].start + timedelta(days=self._day - 1)
 
-    # 与 ordinal 相关的转换 ================================
-
-    @classmethod
-    def from_ordinal(cls, __n: int):
-        if not CCD_ORDINAL_MIN <= __n <= CCD_ORDINAL_MAX:
-            raise OverflowError(
-                '超出农历日期范围。'
-            )
-        ordinals = tuple(ORDINALS.values())
-        le, ri, mid = 1, len(ordinals) - 1, len(ordinals) // 2
-        while ri - le > 1:
-            if ordinals[mid] < __n:
-                le = mid
-            elif ordinals[mid] > __n:
-                ri = mid
-            else:
-                mi = mid
-                break
-            mid = le + (ri - le) // 2
-        else:
-            mi = mid
-
-        month = tuple(ORDINALS.keys())[mi]
-        y, m, leap = month
-        d = __n - ORDINALS[month]
-        return _Date.__new__(cls, y, m, d, leap)
-
     def to_ordinal(self) -> int:
         month = Month(self._year, self._month, self._leap)
         return ORDINALS[month] + self._day
 
-    fromordinal = from_ordinal
-    toordinal = to_ordinal
+    # 其它方法 ================================
+
+    @classmethod
+    def _check_date_fields(cls,
+                           year: int,
+                           month: int,
+                           day: int,
+                           is_leap_month: bool) -> NoReturn:
+        # 类型检查
+        y, m, d, leap = year, month, day, is_leap_month
+        super()._check_date_fields(y, m, d, leap)
+
+        # 精度检查
+        if not CCD_MIN <= (y, m, d, leap) <= CCD_MAX:
+            raise OverflowError(
+                '超出精度范围。请使用更高精度的历法算法。\n'
+                '本类支持的精度范围是：{0} 至 {1}'.format(
+                    ChineseCalendarDate.MIN.strftime(),
+                    ChineseCalendarDate.MAX.strftime(),
+                )
+            )
+        prefix = '闰' if leap else ''
+        if (month := Month(y, m, leap)) not in MONTHS:
+            raise ValueError(
+                f'农历{y}年没有{prefix}{m}月。'
+            )
+        if not d <= MONTHS[month].days:
+            raise ValueError(
+                f'提供的农历日 {d} 不在农历{y}年{prefix}{m}月中。'
+            )
 
 
 ChineseCalendarDate.MIN = ChineseCalendarDate(*CCD_MIN)
