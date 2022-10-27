@@ -3,9 +3,10 @@
 """
 
 from datetime import date
+from typing import NoReturn
 
 STEMS = '甲乙丙丁戊己庚辛壬癸'
-BRANCHES = '子丑壬卯辰巳午未申酉戌亥'
+BRANCHES = '子丑寅卯辰巳午未申酉戌亥'
 ZODIACS = '鼠牛虎兔龙蛇马羊猴鸡狗猪'
 MONTHS = {
     1: '正', 2: '二', 3: '三', 4: '四', 5: '五', 6: '六',
@@ -25,25 +26,12 @@ DAYS = {
 }
 
 
-def _check_date_fields(year: int, month: int, day: int, is_leap_month: bool):
-    if (
-            not isinstance(year, int) or
-            not isinstance(month, int) or
-            not isinstance(day, int)
-    ):
-        raise TypeError('year、month、day 必须是整数类型。')
-    if is_leap_month not in (True, False):
-        raise TypeError('is_leap_month 必须是布尔类型。')
-    if not 1 <= month <= 12:
-        raise ValueError('农历月只能是一个从 1 到 12 的整数。')
-    if not 1 <= day <= 30:
-        raise ValueError('农历日只能是一个从 1 到 30 的整数。')
-
-
 class ChineseCalendarDate(object):
     __slots__ = '_year', '_month', '_day', '_leap', '_hashcode'
 
-    def __new__(cls, year: int, month=1, day=1, is_leap_month: bool = False):
+    # 构造方法 ================================
+
+    def __new__(cls, year, month: int = 1, day: int = 1, is_leap_month: bool = False):
         """
         农历日期。
 
@@ -52,7 +40,7 @@ class ChineseCalendarDate(object):
         :param year: 农历年份。
         :param month: 农历月份。
         :param day: 农历日。
-        :param is_leap_month: 农历月份是否为闰月。
+        :param is_leap_month: 农历月是否为闰月。
         :raise TypeError: 日期参数类型有误。
         :raise ValueError: 日期参数值有误。
         :raise OverflowError: 日期超出精度范围。
@@ -65,37 +53,77 @@ class ChineseCalendarDate(object):
         self._hashcode = -1
         return self
 
-    def replace(self, _year=None, _month=None, _day=None, _is_leap_month=None):
+    @classmethod
+    def strptime(cls, string, fmt: str):
+        """
+        将一个字符串按照指定格式转换为农历日期。
+
+        可用的格式化符号有：
+
+        - ``%Y`` ，补零后，用十进制数字表示的农历年，比如“1901”。
+        - ``%m`` ，补零后，用十进制数字表示的农历月，比如”01“、”06“、”12“。
+        - ``%d`` ，补零后，用十进制数字表示的农历日，比如”01“、”15“、”21“。
+        - ``%b`` ，数序纪月法表示的农历月，比如“正”、“十一”、“十二”，闰月比如“闰七”。
+        - ``%a`` ，序数纪日法表示的农历日，比如“初一”、“十五”、“廿一”。
+        - ``%%`` ，符号 "%" 自身。
+
+        :param string: 字符串。
+        :param fmt: 格式。必须与字符串完全匹配。
+        :return: 农历日期。
+        """
+        # TODO
+        pass
+
+    @classmethod
+    def today(cls):
+        """获取今天对应的农历日期。"""
+        return cls.from_date(date.today())
+
+    @classmethod
+    def from_date(cls, _date: date):
+        """将公历日期转换为农历日期。"""
+        raise NotImplementedError
+
+    fromdate = from_date
+
+    @classmethod
+    def from_ordinal(cls, __n: int):
+        raise NotImplementedError(
+            '{0}.{1} 并不会实现此方法，请勿使用。'.format(
+                cls.__module__,
+                cls.__qualname__,
+            )
+        )
+
+    fromordinal = from_ordinal
+
+    def _replace(self, year=None, month=None, day=None, is_leap_month=None):
+        return ChineseCalendarDate.__new__(
+            type(self),
+            self._year if year is None else year,
+            self._month if month is None else month,
+            self._day if day is None else day,
+            self._leap if is_leap_month not in (True, False) else is_leap_month,
+        )
+
+    def replace(self, year=None, month=None, day=None, is_leap_month=None):
         """
         使用日期的一部分替换当前的日期，从而生成一个新的农历日期。
 
-        :param _year: 新的农历年。如不提供则使用当前的农历年。
-        :param _month: 新的农历月。如不提供则使用当前的农历月。
-        :param _day: 新的农历日。如不提供则使用当前的农历日。
-        :param _is_leap_month: 是否为闰月。如不指定则默认为当前日期的设置。
+        :param year: 新的农历年。如不提供则使用当前的农历年。
+        :param month: 新的农历月。如不提供则使用当前的农历月。
+        :param day: 新的农历日。如不提供则使用当前的农历日。
+        :param is_leap_month: 是否为闰月。如不指定则默认为当前日期的设置。
         :return: 一个新的农历日期。无论是否提供任何参数。
         """
         return type(self)(
-            self._year if _year is None else _year,
-            self._month if _month is None else _month,
-            self._day if _day is None else _day,
-            self._leap if _is_leap_month not in (True, False) else _is_leap_month,
+            self._year if year is None else year,
+            self._month if month is None else month,
+            self._day if day is None else day,
+            self._leap if is_leap_month not in (True, False) else is_leap_month,
         )
 
-    @classmethod
-    def _new(cls, y, m, d, leap):
-        self = ChineseCalendarDate.__new__(cls, y, m, d, leap)
-        return self
-
-    def _replace(self, _year=None, _month=None, _day=None, _is_leap_month=None):
-        return self._new(
-            self._year if _year is None else _year,
-            self._month if _month is None else _month,
-            self._day if _day is None else _day,
-            self._leap if _is_leap_month not in (True, False) else _is_leap_month,
-        )
-
-    # 属性相关 ================================
+    # 只读属性 ================================
 
     @property
     def year(self) -> int:
@@ -208,7 +236,7 @@ class ChineseCalendarDate(object):
         y = other.timetuple()
         return 0 if x == y else 1 if x > y else -1
 
-    # 历法推算 ================================
+    # 计算方法 ================================
 
     def __add__(self, other):
         raise NotImplementedError
@@ -219,7 +247,7 @@ class ChineseCalendarDate(object):
     def __sub__(self, other):
         raise NotImplementedError
 
-    # 基本转换 ================================
+    # 转换器 ================================
 
     def __hash__(self):
         if self._hashcode == -1:
@@ -228,12 +256,6 @@ class ChineseCalendarDate(object):
             code = bytes([yhi, ylo, mon, self._day])
             self._hashcode = hash(code)
         return self._hashcode
-
-    def timetuple(self) -> tuple:
-        """获取组成日期的所有部分。"""
-        return self._year, self._month, self._day, self._leap
-
-    # 与字符串相关的转换 ================================
 
     def __repr__(self):
         return '%s.%s(%d, %d, %d, %s)' % (
@@ -248,26 +270,9 @@ class ChineseCalendarDate(object):
     def __str__(self):
         return self.strftime()
 
-    @classmethod
-    def strptime(cls, string, fmt: str):
-        """
-        将一个字符串按照指定格式转换为农历日期。
-
-        可用的格式化符号有：
-
-        - ``%Y`` ，补零后，用十进制数字表示的农历年，比如“1901”。
-        - ``%m`` ，补零后，用十进制数字表示的农历月，比如”01“、”06“、”12“。
-        - ``%d`` ，补零后，用十进制数字表示的农历日，比如”01“、”15“、”21“。
-        - ``%b`` ，数序纪月法表示的农历月，比如“正”、“十一”、“十二”，闰月比如“闰七”。
-        - ``%a`` ，序数纪日法表示的农历日，比如“初一”、“十五”、“廿一”。
-        - ``%%`` ，符号 "%" 自身。
-
-        :param string: 字符串。
-        :param fmt: 格式。必须与字符串完全匹配。
-        :return: 农历日期。
-        """
-        # TODO
-        pass
+    def timetuple(self) -> tuple:
+        """获取组成日期的所有部分。"""
+        return self._year, self._month, self._day, self._leap
 
     def strftime(self, fmt: str = '农历%Y年%b月%a') -> str:
         """
@@ -326,33 +331,51 @@ class ChineseCalendarDate(object):
 
         return ''.join(translate())
 
-    # 与 datetime.date 相关的转换 ================================
-
-    @classmethod
-    def today(cls):
-        """获取今天对应的农历日期。"""
-        return cls.from_date(date.today())
-
-    @classmethod
-    def from_date(cls, _date: date):
-        """将公历日期转换为农历日期。"""
-        raise NotImplementedError
-
     def to_date(self) -> date:
         """将当前的农历日期转换为公历日期。"""
         raise NotImplementedError
 
-    # 与日戳相关的转换 ================================
-
-    @classmethod
-    def from_ordinal(cls, n):
-        """
-        将日戳转换为农历日期。
-        """
-        raise NotImplementedError
+    todate = to_date
 
     def to_ordinal(self) -> int:
+        raise NotImplementedError(
+            '{0}.{1} 并不会实现此方法，请勿使用。'.format(
+                self.__class__.__module__,
+                self.__class__.__qualname__,
+            )
+        )
+
+    toordinal = to_ordinal
+
+    # 其它方法 ================================
+
+    @classmethod
+    def _check_date_fields(cls,
+                           year: int,
+                           month: int,
+                           day: int,
+                           is_leap_month: bool) -> NoReturn:
         """
-        将农历日期转换为日戳。
+        检查组成农历日期的字段是否正确。
+
+        :param year: 农历年份。
+        :param month: 农历月份。
+        :param day: 农历日。
+        :param is_leap_month: 提供的农历月份是否为闰月。
+        :return: 无返回值。
+        :raise TypeError:
+        :raise ValueError:
+        :raise OverflowError:
         """
-        raise NotImplementedError
+        if (
+                not isinstance(year, int) or
+                not isinstance(month, int) or
+                not isinstance(day, int)
+        ):
+            raise TypeError('year、month、day 必须是整数类型。')
+        if is_leap_month not in (True, False):
+            raise TypeError('is_leap_month 必须是布尔类型。')
+        if not 1 <= month <= 12:
+            raise ValueError('农历月只能是一个从 1 到 12 的整数。')
+        if not 1 <= day <= 30:
+            raise ValueError('农历日只能是一个从 1 到 30 的整数。')
