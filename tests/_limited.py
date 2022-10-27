@@ -62,6 +62,21 @@ def __speed_test__toordinal():
             _ = day.toordinal()
 
 
+def __speed_test__str():
+    ccd = ChineseCalendarDate(2022, 9, 23)
+    assert str(ccd) == '农历2022年九月廿三'
+
+    with BearTimer('ChineseCalendarDate.__str__'):
+        for _ in range(20_0000):
+            day = ChineseCalendarDate(randint(1902, 2099), randint(1, 12), randint(1, 29))
+            _ = str(day)
+
+    with BearTimer('datetime.date.__str__'):
+        for _ in range(20_0000):
+            day = date(randint(1902, 2099), randint(1, 12), randint(1, 28))
+            _ = str(day)
+
+
 def __speed_test__add():
     ccd = ChineseCalendarDate(2022, 9, 23) + timedelta(days=1)
     assert ccd.year == 2022 and ccd.month == 9 and ccd.day == 24
@@ -85,3 +100,4 @@ if __name__ == '__main__':
     __speed_test__fromordinal()
     __speed_test__toordinal()
     __speed_test__add()
+    __speed_test__str()
