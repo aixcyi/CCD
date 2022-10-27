@@ -6,7 +6,7 @@ from datetime import date
 from typing import NoReturn
 
 STEMS = '甲乙丙丁戊己庚辛壬癸'
-BRANCHES = '子丑壬卯辰巳午未申酉戌亥'
+BRANCHES = '子丑寅卯辰巳午未申酉戌亥'
 ZODIACS = '鼠牛虎兔龙蛇马羊猴鸡狗猪'
 MONTHS = {
     1: '正', 2: '二', 3: '三', 4: '四', 5: '五', 6: '六',
