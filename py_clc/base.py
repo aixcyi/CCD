@@ -24,8 +24,8 @@ DAYS = {
     9: '初九', 19: '十九', 29: '廿九',
     10: '初十', 20: '二十', 30: '三十',
 }
-MONTHS_ = {v: k for k, v in MONTHS.items()}
-DAYS_ = {v: k for k, v in DAYS.items()}
+MONTHS_ = {v: k for k, v in MONTHS.items()} | {'冬': 11, '腊': 12}
+DAYS_ = {v: k for k, v in DAYS.items()} | {'卄': 20, '卅': 30}
 
 
 def _compile(fmt):
@@ -47,13 +47,13 @@ def _compile(fmt):
             case 'Y':
                 yield r'(?P<year>[0-9]{1,})'
             case 'm':
-                yield r'(?P<month>闰?(0[1-9]|1[012]))'
+                yield r'(?P<month>[闰閏]?(0[1-9]|1[012]))'
             case 'd':
                 yield r'(?P<day>[1-9]|[12][0-9]|30)'
             case 'b':
-                yield r'(?P<month>闰?([正二三四五六七八九]|十一|十二))'
+                yield r'(?P<month>[闰閏]?([正二三四五六七八九冬腊]|十一|十二))'
             case 'a':
-                yield r'(?P<day>[初十廿][一二三四五六七八九]|[初二三]十)'
+                yield r'(?P<day>[初十廿][一二三四五六七八九]|[初二三]十|[卄卅])'
             case '%':
                 yield r'%'
             case _:
@@ -89,7 +89,6 @@ def _strftime(self, fmt):
                 yield DAYS[self._day]
             case '%':
                 yield '%'
-                continue
             case _:
                 raise ValueError(f'无法解析格式化符号 "%{flag}"，所在位置 {i}')
 
@@ -152,10 +151,15 @@ class ChineseCalendarDate(object):
                 f'日期缺少年、月或日。'
             )
         y = int(y)
-        leap = m.startswith('闰')
+        leap = m.startswith('闰閏')
         m = m[1:] if leap else m
-        m = int(m) if m.isdecimal() else MONTHS_[m]
-        d = int(d) if d.isdecimal() else DAYS_[d]
+        try:
+            m = int(m) if m.isdecimal() else MONTHS[m]
+            d = int(d) if d.isdecimal() else DAYS[d]
+        except KeyError as e:
+            raise ValueError(
+                f'无法识别的表述："{e.args[0]}"'
+            ) from None
         return cls(y, m, d, leap)
 
     @classmethod
