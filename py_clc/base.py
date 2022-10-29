@@ -1,7 +1,7 @@
 """
 定义农历日期的抽象类，其中实现了农历日期文本与数字转换的功能。
 """
-
+import re
 from datetime import date
 from typing import NoReturn
 
@@ -24,6 +24,73 @@ DAYS = {
     9: '初九', 19: '十九', 29: '廿九',
     10: '初十', 20: '二十', 30: '三十',
 }
+MONTHS_ = {v: k for k, v in MONTHS.items()} | {'冬': 11, '腊': 12}
+DAYS_ = {v: k for k, v in DAYS.items()} | {'卄': 20, '卅': 30}
+
+
+def _compile(fmt):
+    if fmt.__class__ is not str:
+        raise TypeError(
+            '请以字符串形式提供农历日期格式。'
+        )
+    i, length = -1, len(fmt)
+    while i < length:
+        i += 1
+        if (c := fmt[i]) != '%':
+            yield c
+            continue
+        if i + 1 == length:
+            raise ValueError(
+                f'无法解析格式化符号 "%"，所在位置 {i}'
+            )
+        match (c := fmt[(i := i + 1)]):
+            case 'Y':
+                yield r'(?P<year>[0-9]{1,})'
+            case 'm':
+                yield r'(?P<month>[闰閏]?(0[1-9]|1[012]))'
+            case 'd':
+                yield r'(?P<day>[1-9]|[12][0-9]|30)'
+            case 'b':
+                yield r'(?P<month>[闰閏]?([正二三四五六七八九冬腊]|十一|十二))'
+            case 'a':
+                yield r'(?P<day>[初十廿][一二三四五六七八九]|[初二三]十|[卄卅])'
+            case '%':
+                yield r'%'
+            case _:
+                raise ValueError(
+                    f'无法解析格式化符号 "{c}"，所在位置 {i}'
+                )
+
+
+def _strftime(self, fmt):
+    leap = '闰' if self._leap else ''
+    i, n = -1, len(fmt)
+    while i < n:
+        i += 1
+        if fmt[i] != '%':
+            yield fmt[i]
+            continue
+        if i == n - 1:  # 枚举到最后一个字符
+            raise ValueError(f'无法解析格式化符号 "%"，所在位置 {i}')
+        match (flag := fmt[i := i + 1]):  # 取下一个字符
+            case 'Y':
+                yield f'{self._year:04d}'
+            case 'm':
+                yield f'{self._month:02d}'
+            case 'd':
+                yield f'{self._day:02d}'
+            case 'G':
+                yield self.year_stem_branch
+            case 'g':
+                yield self.year_zodiac
+            case 'b':
+                yield leap + MONTHS[self._month]
+            case 'a':
+                yield DAYS[self._day]
+            case '%':
+                yield '%'
+            case _:
+                raise ValueError(f'无法解析格式化符号 "%{flag}"，所在位置 {i}')
 
 
 class ChineseCalendarDate(object):
@@ -54,7 +121,7 @@ class ChineseCalendarDate(object):
         return self
 
     @classmethod
-    def strptime(cls, string, fmt: str):
+    def strptime(cls, string, fmt: str = '农历%Y年%b月%a'):
         """
         将一个字符串按照指定格式转换为农历日期。
 
@@ -71,8 +138,29 @@ class ChineseCalendarDate(object):
         :param fmt: 格式。必须与字符串完全匹配。
         :return: 农历日期。
         """
-        # TODO
-        pass
+        regex = ''.join(_compile(fmt))
+        result = re.fullmatch(regex, string)
+        if result is None:
+            raise ValueError(
+                f'日期字符串 "{string} 与指定格式 "{fmt}" 不匹配。'
+            )
+        data = result.groupdict()
+        y, m, d = data.get('year'), data.get('month'), data.get('day')
+        if y is None or m is None or d is None:
+            raise ValueError(
+                f'日期缺少年、月或日。'
+            )
+        y = int(y)
+        leap = m.startswith('闰閏')
+        m = m[1:] if leap else m
+        try:
+            m = int(m) if m.isdecimal() else MONTHS[m]
+            d = int(d) if d.isdecimal() else DAYS[d]
+        except KeyError as e:
+            raise ValueError(
+                f'无法识别的表述："{e.args[0]}"'
+            ) from None
+        return cls(y, m, d, leap)
 
     @classmethod
     def today(cls):
@@ -297,39 +385,7 @@ class ChineseCalendarDate(object):
         :return: 格式化后产生的字符串。
         :raise ValueError: 格式无法解析时抛出。
         """
-
-        def translate():
-            leap = '闰' if self._leap else ''
-            i, n = 0, len(fmt)
-            while i < n:
-                if fmt[i] != '%':
-                    yield fmt[i]
-                elif i == n - 1:  # 枚举到最后一个字符
-                    raise ValueError(f'无法解析格式化符号 "%"，所在位置 {i}')
-                else:
-                    match (flag := fmt[i := i + 1]):  # 取下一个字符
-                        case 'Y':
-                            yield f'{self._year:04d}'
-                        case 'm':
-                            yield f'{self._month:02d}'
-                        case 'd':
-                            yield f'{self._day:02d}'
-                        case 'G':
-                            yield self.year_stem_branch
-                        case 'g':
-                            yield self.year_zodiac
-                        case 'b':
-                            yield leap + MONTHS[self._month]
-                        case 'a':
-                            yield DAYS[self._day]
-                        case '%':
-                            yield '%'
-                            continue
-                        case _:
-                            raise ValueError(f'无法解析格式化符号 "%{flag}"，所在位置 {i}')
-                i += 1
-
-        return ''.join(translate())
+        return ''.join(_strftime(self, fmt))
 
     def to_date(self) -> date:
         """将当前的农历日期转换为公历日期。"""
