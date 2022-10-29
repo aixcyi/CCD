@@ -33,33 +33,33 @@ def _compile(fmt):
         raise TypeError(
             '请以字符串形式提供农历日期格式。'
         )
-    i, length = 0, len(fmt)
+    i, length = -1, len(fmt)
     while i < length:
+        i += 1
         if (c := fmt[i]) != '%':
             yield c
-        else:
-            if i + 1 == length:
+            continue
+        if i + 1 == length:
+            raise ValueError(
+                f'无法解析格式化符号 "%"，所在位置 {i}'
+            )
+        match (c := fmt[(i := i + 1)]):
+            case 'Y':
+                yield r'(?P<year>[0-9]{1,})'
+            case 'm':
+                yield r'(?P<month>闰?(0[1-9]|1[012]))'
+            case 'd':
+                yield r'(?P<day>[1-9]|[12][0-9]|30)'
+            case 'b':
+                yield r'(?P<month>闰?([正二三四五六七八九]|十一|十二))'
+            case 'a':
+                yield r'(?P<day>[初十廿][一二三四五六七八九]|[初二三]十)'
+            case '%':
+                yield r'%'
+            case _:
                 raise ValueError(
-                    f'无法解析格式化符号 "%"，所在位置 {i}'
+                    f'无法解析格式化符号 "{c}"，所在位置 {i}'
                 )
-            match (c := fmt[(i := i + 1)]):
-                case 'Y':
-                    yield r'(?P<year>[0-9]{1,})'
-                case 'm':
-                    yield r'(?P<month>闰?(0[1-9]|1[012]))'
-                case 'd':
-                    yield r'(?P<day>[1-9]|[12][0-9]|30)'
-                case 'b':
-                    yield r'(?P<month>闰?([正二三四五六七八九]|十一|十二))'
-                case 'a':
-                    yield r'(?P<day>[初十廿][一二三四五六七八九]|[初二三]十)'
-                case '%':
-                    yield r'%'
-                case _:
-                    raise ValueError(
-                        f'无法解析格式化符号 "{c}"，所在位置 {i}'
-                    )
-        i += 1
 
 
 class ChineseCalendarDate(object):
@@ -352,34 +352,34 @@ class ChineseCalendarDate(object):
 
         def translate():
             leap = '闰' if self._leap else ''
-            i, n = 0, len(fmt)
+            i, n = -1, len(fmt)
             while i < n:
+                i += 1
                 if fmt[i] != '%':
                     yield fmt[i]
-                elif i == n - 1:  # 枚举到最后一个字符
+                    continue
+                if i == n - 1:  # 枚举到最后一个字符
                     raise ValueError(f'无法解析格式化符号 "%"，所在位置 {i}')
-                else:
-                    match (flag := fmt[i := i + 1]):  # 取下一个字符
-                        case 'Y':
-                            yield f'{self._year:04d}'
-                        case 'm':
-                            yield f'{self._month:02d}'
-                        case 'd':
-                            yield f'{self._day:02d}'
-                        case 'G':
-                            yield self.year_stem_branch
-                        case 'g':
-                            yield self.year_zodiac
-                        case 'b':
-                            yield leap + MONTHS[self._month]
-                        case 'a':
-                            yield DAYS[self._day]
-                        case '%':
-                            yield '%'
-                            continue
-                        case _:
-                            raise ValueError(f'无法解析格式化符号 "%{flag}"，所在位置 {i}')
-                i += 1
+                match (flag := fmt[i := i + 1]):  # 取下一个字符
+                    case 'Y':
+                        yield f'{self._year:04d}'
+                    case 'm':
+                        yield f'{self._month:02d}'
+                    case 'd':
+                        yield f'{self._day:02d}'
+                    case 'G':
+                        yield self.year_stem_branch
+                    case 'g':
+                        yield self.year_zodiac
+                    case 'b':
+                        yield leap + MONTHS[self._month]
+                    case 'a':
+                        yield DAYS[self._day]
+                    case '%':
+                        yield '%'
+                        continue
+                    case _:
+                        raise ValueError(f'无法解析格式化符号 "%{flag}"，所在位置 {i}')
 
         return ''.join(translate())
 
