@@ -1,7 +1,7 @@
 """
 定义农历日期的抽象类，其中实现了农历日期文本与数字转换的功能。
 """
-
+import re
 from datetime import date
 from typing import NoReturn
 
@@ -24,6 +24,42 @@ DAYS = {
     9: '初九', 19: '十九', 29: '廿九',
     10: '初十', 20: '二十', 30: '三十',
 }
+MONTHS_ = {v: k for k, v in MONTHS.items()}
+DAYS_ = {v: k for k, v in DAYS.items()}
+
+
+def _compile(fmt):
+    if fmt.__class__ is not str:
+        raise TypeError(
+            '请以字符串形式提供农历日期格式。'
+        )
+    i, length = 0, len(fmt)
+    while i < length:
+        if (c := fmt[i]) != '%':
+            yield c
+        else:
+            if i + 1 == length:
+                raise ValueError(
+                    f'无法解析格式化符号 "%"，所在位置 {i}'
+                )
+            match (c := fmt[(i := i + 1)]):
+                case 'Y':
+                    yield r'(?P<year>[0-9]{1,})'
+                case 'm':
+                    yield r'(?P<month>闰?(0[1-9]|1[012]))'
+                case 'd':
+                    yield r'(?P<day>[1-9]|[12][0-9]|30)'
+                case 'b':
+                    yield r'(?P<month>闰?([正二三四五六七八九]|十一|十二))'
+                case 'a':
+                    yield r'(?P<day>[初十廿][一二三四五六七八九]|[初二三]十)'
+                case '%':
+                    yield r'%'
+                case _:
+                    raise ValueError(
+                        f'无法解析格式化符号 "{c}"，所在位置 {i}'
+                    )
+        i += 1
 
 
 class ChineseCalendarDate(object):
@@ -54,7 +90,7 @@ class ChineseCalendarDate(object):
         return self
 
     @classmethod
-    def strptime(cls, string, fmt: str):
+    def strptime(cls, string, fmt: str = '农历%Y年%b月%a'):
         """
         将一个字符串按照指定格式转换为农历日期。
 
@@ -71,8 +107,24 @@ class ChineseCalendarDate(object):
         :param fmt: 格式。必须与字符串完全匹配。
         :return: 农历日期。
         """
-        # TODO
-        pass
+        regex = ''.join(_compile(fmt))
+        result = re.fullmatch(regex, string)
+        if result is None:
+            raise ValueError(
+                f'日期字符串 "{string} 与指定格式 "{fmt}" 不匹配。'
+            )
+        data = result.groupdict()
+        y, m, d = data.get('year'), data.get('month'), data.get('day')
+        if y is None or m is None or d is None:
+            raise ValueError(
+                f'日期缺少年、月或日。'
+            )
+        y = int(y)
+        leap = m.startswith('闰')
+        m = m[1:] if leap else m
+        m = int(m) if m.isdecimal() else MONTHS_[m]
+        d = int(d) if d.isdecimal() else DAYS_[d]
+        return cls(y, m, d, leap)
 
     @classmethod
     def today(cls):
