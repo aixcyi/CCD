@@ -98,7 +98,11 @@ class ChineseCalendarDate(object):
 
     # 构造方法 ================================
 
-    def __new__(cls, year, month: int = 1, day: int = 1, is_leap_month: bool = False):
+    def __new__(cls,
+                year,
+                month: int = 1,
+                day: int = 1,
+                is_leap_month: bool = False):
         """
         农历日期。
 
@@ -163,19 +167,19 @@ class ChineseCalendarDate(object):
         return cls(y, m, d, leap)
 
     @classmethod
-    def today(cls):
+    def today(cls) -> 'ChineseCalendarDate':
         """获取今天对应的农历日期。"""
         return cls.from_date(date.today())
 
     @classmethod
-    def from_date(cls, _date: date):
+    def from_date(cls, _date: date) -> 'ChineseCalendarDate':
         """将公历日期转换为农历日期。"""
         raise NotImplementedError
 
     fromdate = from_date
 
     @classmethod
-    def from_ordinal(cls, __n: int):
+    def from_ordinal(cls, __n: int) -> 'ChineseCalendarDate':
         raise NotImplementedError(
             '{0}.{1} 并不会实现此方法，请勿使用。'.format(
                 cls.__module__,

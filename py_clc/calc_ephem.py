@@ -112,13 +112,17 @@ def _enum_months(_year: int) -> OrderedDict[tuple[int, bool], tuple[int, date]]:
 
 class ChineseCalendarDate(_Date):
 
-    def __new__(cls, year: int, month=1, day=1, is_leap_month: bool = False):
+    def __new__(cls,
+                year: int,
+                month=1,
+                day=1,
+                is_leap_month: bool = False):
         cls._check_date_fields(year, month, day, is_leap_month)
         self = _Date.__new__(cls, year, month, day, is_leap_month)
         return self
 
     @classmethod
-    def from_date(cls, _date: date | tuple):
+    def from_date(cls, _date: date | tuple) -> 'ChineseCalendarDate':
         if isinstance(_date, tuple):
             _d = date(*_date[:3])
         elif isinstance(_date, date):
@@ -140,7 +144,7 @@ class ChineseCalendarDate(_Date):
                 return cls(_d.year, last_moon[0], day, last_moon[1])
 
     @classmethod
-    def from_ordinal(cls, n):
+    def from_ordinal(cls, n) -> 'ChineseCalendarDate':
         return cls.from_date(date.fromordinal(n))
 
     # 只读属性 ================================

@@ -143,13 +143,17 @@ class ChineseCalendarDate(_Date):
 
     # 构造方法 ================================
 
-    def __new__(cls, year, month: int = 1, day: int = 1, is_leap_month: bool = False):
+    def __new__(cls,
+                year,
+                month: int = 1,
+                day: int = 1,
+                is_leap_month: bool = False):
         cls._check_date_fields(year, month, day, is_leap_month)
         self = _Date.__new__(cls, year, month, day, is_leap_month)
         return self
 
     @classmethod
-    def from_date(cls, _date: date):
+    def from_date(cls, _date: date) -> 'ChineseCalendarDate':
         """
         将公历日期转换为农历日期。
 
@@ -184,7 +188,7 @@ class ChineseCalendarDate(_Date):
         return _Date.__new__(cls, y, m, offset + 1, leap)
 
     @classmethod
-    def from_ordinal(cls, __n: int):
+    def from_ordinal(cls, __n: int) -> 'ChineseCalendarDate':
         if not CCD_ORDINAL_MIN <= __n <= CCD_ORDINAL_MAX:
             raise OverflowError(
                 '超出农历日期范围。'
