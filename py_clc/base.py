@@ -374,8 +374,6 @@ class ChineseCalendarDate(object):
         offset = int((_date - start) / timedelta(days=1))
         return cls.__new__(cls, y, m, offset + 1, leap)
 
-    fromdate = from_date
-
     @classmethod
     def from_ordinal(cls, __n: int) -> 'ChineseCalendarDate':
         if not CCD_ORDINAL_MIN <= __n <= CCD_ORDINAL_MAX:
@@ -639,8 +637,6 @@ class ChineseCalendarDate(object):
         """将当前的农历日期转换为公历日期。"""
         month = Month(self._year, self._month, self._leap)
         return MONTHS[month].start + timedelta(days=self._day - 1)
-
-    todate = to_date
 
     def to_ordinal(self) -> int:
         month = Month(self._year, self._month, self._leap)
