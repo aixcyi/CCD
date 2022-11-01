@@ -55,7 +55,14 @@ DATAS = (
 )
 
 
-def _check_date_fields(y, m, d, leap):
+def _check_date_fields(y, m, d, leap) -> NoReturn:
+    """
+    检查农历日期字段的类型和普遍适用的范围。
+
+    :return: 无返回值。
+    :raise TypeError: 参数类型错误。
+    :raise ValueError: 参数错误或无法转换。
+    """
     if (
             not isinstance(y, int) or
             not isinstance(m, int) or
@@ -68,6 +75,33 @@ def _check_date_fields(y, m, d, leap):
         raise ValueError('农历月只能是一个从 1 到 12 的整数。')
     if not 1 <= d <= 30:
         raise ValueError('农历日只能是一个从 1 到 30 的整数。')
+
+
+def _check_date_range(y, m, d, leap) -> NoReturn:
+    """
+    检查农历日期字段的范围。
+
+    :return: 无返回值。
+    :raise ValueError: 参数错误或无法转换。
+    :raise OverflowError: 参数超出可计算范围。
+    """
+    if not CCD_MIN <= (y, m, d, leap) <= CCD_MAX:
+        raise OverflowError(
+            '超出支持范围。请使用范围更广的历法算法。\n'
+            '本类支持的范围是：{0} 至 {1}'.format(
+                ChineseCalendarDate.MIN.strftime(),
+                ChineseCalendarDate.MAX.strftime(),
+            )
+        )
+    prefix = '闰' if leap else ''
+    if (month := Month(y, m, leap)) not in MONTHS:
+        raise ValueError(
+            f'农历{y}年没有{prefix}{m}月。'
+        )
+    if not d <= MONTHS[month].days:
+        raise ValueError(
+            f'提供的农历日 {d} 不在农历{y}年{prefix}{m}月中。'
+        )
 
 
 def _compile(fmt):
@@ -234,11 +268,7 @@ class ChineseCalendarDate(object):
 
     # 构造方法
 
-    def __new__(cls,
-                year,
-                month: int = 1,
-                day: int = 1,
-                is_leap_month: bool = False):
+    def __new__(cls, year, month=1, day=1, is_leap_month: bool = False):
         """
         农历日期。
 
@@ -248,11 +278,12 @@ class ChineseCalendarDate(object):
         :param month: 农历月份。
         :param day: 农历日。
         :param is_leap_month: 农历月是否为闰月。
-        :raise TypeError: 日期参数类型有误。
-        :raise ValueError: 日期参数值有误或无法转换。
-        :raise OverflowError: 日期超出计算范围。
+        :raise TypeError: 参数类型有误。
+        :raise ValueError: 参数有误或无法转换。
+        :raise OverflowError: 参数超出计算范围。
         """
-        cls._check_date_fields(year, month, day, is_leap_month)
+        _check_date_fields(year, month, day, is_leap_month)
+        _check_date_range(year, month, day, is_leap_month)
         self = object.__new__(cls)
         self._year = year
         self._month = month
@@ -616,49 +647,6 @@ class ChineseCalendarDate(object):
         return ORDINALS[month] + self._day
 
     toordinal = to_ordinal
-
-    # 其它方法
-
-    @classmethod
-    def _check_date_fields(cls,
-                           year: int,
-                           month: int,
-                           day: int,
-                           is_leap_month: bool) -> NoReturn:
-        """
-        检查组成农历日期的字段是否正确。
-
-        :param year: 农历年份。
-        :param month: 农历月份。
-        :param day: 农历日。
-        :param is_leap_month: 提供的农历月份是否为闰月。
-        :return: 无返回值。
-        :raise TypeError: 参数类型错误。
-        :raise ValueError: 参数值错误或无法转换。
-        :raise OverflowError: 精度或值超出支持的范围。
-        """
-        # 类型检查
-        y, m, d, leap = year, month, day, is_leap_month
-        _check_date_fields(y, m, d, leap)
-
-        # 精度检查
-        if not CCD_MIN <= (y, m, d, leap) <= CCD_MAX:
-            raise OverflowError(
-                '超出精度范围。请使用更高精度的历法算法。\n'
-                '本类支持的精度范围是：{0} 至 {1}'.format(
-                    ChineseCalendarDate.MIN.strftime(),
-                    ChineseCalendarDate.MAX.strftime(),
-                )
-            )
-        prefix = '闰' if leap else ''
-        if (month := Month(y, m, leap)) not in MONTHS:
-            raise ValueError(
-                f'农历{y}年没有{prefix}{m}月。'
-            )
-        if not d <= MONTHS[month].days:
-            raise ValueError(
-                f'提供的农历日 {d} 不在农历{y}年{prefix}{m}月中。'
-            )
 
 
 ChineseCalendarDate.MIN = ChineseCalendarDate(*CCD_MIN)
