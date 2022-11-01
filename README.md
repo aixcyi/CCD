@@ -23,13 +23,28 @@ pip install py_clc
 #### 使用
 
 ```python
+from datetime import date, timedelta
 from py_clc import ChineseCalendarDate
 
-today = ChineseCalendarDate.today()
-print(str(today))
-# '农历2022年八月廿一'
-print(repr(today))
-# 'py_clc.base.ChineseCalendarDate(2022, 10, 3, False)'
+gcd = date.today()
+print(str(gcd))
+# '2020-06-20'
+
+ccd = ChineseCalendarDate.from_date(gcd)
+print(str(ccd))
+# '农历2020年闰四月廿九'
+print(repr(ccd))
+# 'py_clc.base.ChineseCalendarDate(2020, 4, 29, True)'
+
+ccd += timedelta(days=1)
+print(str(ccd))
+# '农历2020年五月初一'
+print(repr(ccd))
+# 'py_clc.base.ChineseCalendarDate(2020, 5, 1, False)'
+
+gcd = ccd.to_date()
+print(str(gcd))
+# '2020-06-21'
 ```
 
 ## APIs
