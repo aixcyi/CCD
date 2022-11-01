@@ -4,9 +4,13 @@
 
 ## 功能
 
-- 农历文本与数字的互相转换。
-- 公农历的互相转换。
-- 农历日期对象的存储、判等、比较、加减。
+- [x] 农历日期的判等和比较
+- [x] 农历日期的加减（与`datetime.time`）
+- [x] 农历日期的数字化和汉字化
+- [x] 公农历的互相转换
+  - [x] 范围有限的快速转换
+  - [x] 范围无限的计算转换
+- [ ] 支持 Pickle 协议
 
 ## 快速上手
 
@@ -25,6 +29,8 @@ today = ChineseCalendarDate.today()
 print(str(today))
 # '农历2022年八月廿一'
 print(repr(today))
-# 'py_clc.limited.ChineseCalendarDate(2022, 10, 3, False)'
+# 'py_clc.base.ChineseCalendarDate(2022, 10, 3, False)'
 ```
+
+## APIs
 

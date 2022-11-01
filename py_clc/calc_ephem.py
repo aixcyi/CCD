@@ -5,7 +5,10 @@ from typing import NoReturn
 
 import ephem
 
-from py_clc.base import ChineseCalendarDate as _Date
+from py_clc.base import (
+    ChineseCalendarDate as _Date,
+    _check_date_fields as _check_fields,
+)
 
 
 def r2d(rad) -> float:
@@ -33,6 +36,20 @@ def reset(_time: datetime) -> datetime:
     略去 datetime 中的 time，只保留 date 部分。
     """
     return _time.replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+def _check_date_fields(y, m, d, leap) -> NoReturn:
+    # 基础检查
+    _check_fields(y, m, d, leap)
+
+    # 岁首在十一月，所以如果提供的农历月在十一月之后，就需要枚举下一个农历年的农历月。
+    months = _enum_months(y if y < 11 else (y + 1))
+
+    if (_month := (y, leap)) not in months:
+        prefix = '闰' if leap else ''
+        raise ValueError(f'农历{y}年没有{prefix}{y}月。')
+    if not d <= months[_month][0]:
+        raise ValueError(f'提供的农历日 {d} 超过了当月日期范围。')
 
 
 def _check_if_leap(prev_new_moon: datetime, next_new_moon: datetime, epoch) -> bool:
@@ -112,42 +129,43 @@ def _enum_months(_year: int) -> OrderedDict[tuple[int, bool], tuple[int, date]]:
 
 class ChineseCalendarDate(_Date):
 
-    def __new__(cls,
-                year: int,
-                month=1,
-                day=1,
-                is_leap_month: bool = False):
-        cls._check_date_fields(year, month, day, is_leap_month)
-        self = _Date.__new__(cls, year, month, day, is_leap_month)
+    def __new__(cls, year, month=1, day=1, is_leap_month: bool = False):
+        _check_date_fields(year, month, day, is_leap_month)
+        self = object.__new__(cls)
+        self._year = year
+        self._month = month
+        self._day = day
+        self._leap = is_leap_month
+        self._hashcode = -1
         return self
 
     @classmethod
-    def from_date(cls, _date: date | tuple) -> 'ChineseCalendarDate':
-        if isinstance(_date, tuple):
-            _d = date(*_date[:3])
-        elif isinstance(_date, date):
-            _d = _date
-        else:
-            raise TypeError
-        solstice = ephem.previous_solstice(str(_d.year)).datetime().date()
-        months = _enum_months(_d.year if solstice <= _d else (_d.year - 1))
+    def from_date(cls, _date: date) -> 'ChineseCalendarDate':
+        if not isinstance(_date, date):
+            raise TypeError(
+                '只接受 datetime.date 及其衍生类型的公历日期。'
+            )
+        solstice = ephem.previous_solstice(str(_date.year)).datetime().date()
+        months = _enum_months(_date.year if solstice <= _date else (_date.year - 1))
         last_moon = None
         last_info = None
         for _m in months:
-            if months[_m][1] == _d:
-                return cls(_d.year, _m[0], 1, _m[1])
-            elif months[_m][1] < _d:
+            if months[_m][1] == _date:
+                return cls(_date.year, _m[0], 1, _m[1])
+            elif months[_m][1] < _date:
                 last_moon = _m
                 last_info = months[_m]
             else:
-                day = (last_info[1] - _d).days
-                return cls(_d.year, last_moon[0], day, last_moon[1])
+                day = (last_info[1] - _date).days
+                return cls(_date.year, last_moon[0], day, last_moon[1])
 
     @classmethod
     def from_ordinal(cls, n) -> 'ChineseCalendarDate':
         return cls.from_date(date.fromordinal(n))
 
-    # 只读属性 ================================
+    fromordinal = from_ordinal
+
+    # 只读属性
 
     @staticmethod
     def months(_year: int):
@@ -177,7 +195,7 @@ class ChineseCalendarDate(_Date):
         _month = (self._month, self._leap)
         return sum(days for m, days in months.items() if m < _month) + self._day
 
-    # 计算方法 ================================
+    # 计算方法
 
     def __add__(self, other):
         if isinstance(other, timedelta):
@@ -206,7 +224,7 @@ class ChineseCalendarDate(_Date):
             return self.from_ordinal(n)
         raise NotImplementedError
 
-    # 转换器 ================================
+    # 转换器
 
     def to_date(self) -> date:
         months = _enum_months(self._year - (1 if self._month < 11 else 0))
@@ -216,22 +234,4 @@ class ChineseCalendarDate(_Date):
     def to_ordinal(self) -> int:
         return self.to_date().toordinal()
 
-    # 其它方法 ================================
-
-    @classmethod
-    def _check_date_fields(cls,
-                           year: int,
-                           month: int,
-                           day: int,
-                           is_leap_month: bool) -> NoReturn:
-        super()._check_date_fields(
-            year, month, day, is_leap_month
-        )
-        # 岁首在十一月，所以如果提供的农历月在十一月之后，就需要枚举下一个农历年的农历月。
-        months = _enum_months(year if month < 11 else (year + 1))
-
-        if (_month := (month, is_leap_month)) not in months:
-            prefix = '闰' if is_leap_month else ''
-            raise ValueError(f'农历{year}年没有{prefix}{month}月。')
-        if not day <= months[_month][0]:
-            raise ValueError(f'提供的农历日 {day} 超过了当月日期范围。')
+    toordinal = to_ordinal
