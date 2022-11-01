@@ -140,26 +140,24 @@ class ChineseCalendarDate(_Date):
         return self
 
     @classmethod
-    def from_date(cls, _date: date | tuple) -> 'ChineseCalendarDate':
-        if isinstance(_date, tuple):
-            _d = date(*_date[:3])
-        elif isinstance(_date, date):
-            _d = _date
-        else:
-            raise TypeError
-        solstice = ephem.previous_solstice(str(_d.year)).datetime().date()
-        months = _enum_months(_d.year if solstice <= _d else (_d.year - 1))
+    def from_date(cls, _date: date) -> 'ChineseCalendarDate':
+        if not isinstance(_date, date):
+            raise TypeError(
+                '只接受 datetime.date 及其衍生类型的公历日期。'
+            )
+        solstice = ephem.previous_solstice(str(_date.year)).datetime().date()
+        months = _enum_months(_date.year if solstice <= _date else (_date.year - 1))
         last_moon = None
         last_info = None
         for _m in months:
-            if months[_m][1] == _d:
-                return cls(_d.year, _m[0], 1, _m[1])
-            elif months[_m][1] < _d:
+            if months[_m][1] == _date:
+                return cls(_date.year, _m[0], 1, _m[1])
+            elif months[_m][1] < _date:
                 last_moon = _m
                 last_info = months[_m]
             else:
-                day = (last_info[1] - _d).days
-                return cls(_d.year, last_moon[0], day, last_moon[1])
+                day = (last_info[1] - _date).days
+                return cls(_date.year, last_moon[0], day, last_moon[1])
 
     @classmethod
     def from_ordinal(cls, n) -> 'ChineseCalendarDate':
