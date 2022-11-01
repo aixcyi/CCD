@@ -165,6 +165,8 @@ class ChineseCalendarDate(_Date):
     def from_ordinal(cls, n) -> 'ChineseCalendarDate':
         return cls.from_date(date.fromordinal(n))
 
+    fromordinal = from_ordinal
+
     # 只读属性
 
     @staticmethod
@@ -233,3 +235,5 @@ class ChineseCalendarDate(_Date):
 
     def to_ordinal(self) -> int:
         return self.to_date().toordinal()
+
+    toordinal = to_ordinal
