@@ -657,3 +657,43 @@ ChineseCalendarDate.MAX = ChineseCalendarDate(*CCD_MAX)
 当前模块支持计算的最晚的农历日期。\n
 因为数据没有显示农历2100年十二月是大月还是小月，故舍弃。
 """
+
+if __name__ == '__main__':
+    gcd = date(2020, 6, 20)
+    ccd = ChineseCalendarDate.from_date(gcd)
+    assert ccd.timetuple() == (2020, 4, 29, True)
+    assert str(ccd) == '农历2020年闰四月廿九'
+    assert ccd.day_of_year == 148  # 这一天是当年的第148天
+    assert ccd.days_in_year == 384  # 农历2020年总共384天（2020.1.25-2021.2.11）
+    assert ccd.days_in_month == 29  # 农历2020年闰四月总共29天
+    assert ccd.year_stem_branch == '庚子'
+    assert ccd.year_zodiac == '鼠'
+    assert ccd.month_ordinal == '闰四'
+    assert ccd.day_ordinal == '廿九'
+    assert ccd == ChineseCalendarDate(2020, 4, 29, True)
+    assert ccd < ChineseCalendarDate(2020, 5, 1, False)
+    assert ccd > ChineseCalendarDate(2020, 4, 28, True)
+
+    ccd = ChineseCalendarDate.fromordinal(CCD_ORDINAL_MIN)
+    assert ccd.timetuple() == CCD_MIN
+    ccd = ChineseCalendarDate.fromordinal(CCD_ORDINAL_MAX)
+    assert ccd.timetuple() == CCD_MAX
+
+    ccd2 = ccd + timedelta(days=0)
+    assert ccd.timetuple() == ccd2.timetuple()
+    assert id(ccd) != id(ccd2)
+    ccd2 = ccd - timedelta(days=0)
+    assert ccd.timetuple() == ccd2.timetuple()
+    assert id(ccd) != id(ccd2)
+
+    ccd += timedelta(days=1)
+    assert ccd.timetuple() == (2020, 5, 1, False)
+    ccd -= timedelta(days=1)
+    assert ccd.timetuple() == (2020, 4, 29, True)
+    ccd -= timedelta(days=-1)
+    assert ccd.timetuple() == (2020, 5, 1, False)
+    ccd += timedelta(days=-1)
+    assert ccd.timetuple() == (2020, 4, 29, True)
+
+    ccd = ChineseCalendarDate.strptime('农历2020年闰四月廿九', '农历%Y年%b月%a')
+    assert ccd.timetuple() == (2020, 4, 29, True)
