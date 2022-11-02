@@ -496,12 +496,13 @@ class ChineseCalendarDate(object):
         """
         数序纪月法表示的农历月份。
 
-        不会以 ”月“ 结尾。
+        第一个月使用 “正”月 表述，
+        往后的月份均使用小写数字表示，比如 “六”月、“十二”月。
 
-        除了第一个月使用 ”正月“ 表达外，其它月份都与小写数字无异。
-        比如 ”六月“、”十二月“ 等。
+        不会以 ”月“ 结尾。当该月是闰月时会以 “闰” 开头。
         """
-        return ORDS_MON[self._month]
+        prefix = '闰' if self._leap else ''
+        return prefix + ORDS_MON[self._month]
 
     @property
     def day_ordinal(self) -> str:
