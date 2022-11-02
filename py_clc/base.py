@@ -69,7 +69,7 @@ def _check_date_fields(y, m, d, leap) -> NoReturn:
             not isinstance(d, int)
     ):
         raise TypeError('year、month、day 必须是整数类型。')
-    if leap is not True or leap is not False:
+    if leap is not True and leap is not False:
         raise TypeError('is_leap_month 必须是布尔类型。')
     if not 1 <= m <= 12:
         raise ValueError('农历月只能是一个从 1 到 12 的整数。')
