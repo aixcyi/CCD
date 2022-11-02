@@ -180,6 +180,7 @@ class Month(NamedTuple):
 class MonthInfo(NamedTuple):
     days: int
     start: date
+    ordinal: int
 
 
 def _leap_month(yi) -> int:
@@ -210,53 +211,50 @@ def _unzip_months():
     """
     mos = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)  # 平年所有月份的序数
     start = DATE_MIN.replace()
+    ordinal = CCD_ORDINAL_MIN
 
     # -------- 农历1900年有效数据只有十二月1个平月
     days = _last_day(0, mos[-1])
-    yield Month(1900, mos[-1], False), MonthInfo(days, start)
+    yield Month(1900, mos[-1], False), MonthInfo(days, start, ordinal)
     start += timedelta(days=days)
+    ordinal += days
     # --------
     for yi in range(1, (eyi := len(DATAS) - 1)):  # 1901~2099
         # 平年（没有闰月）
         if (lmo := _leap_month(yi)) == 0:
             for mo in mos:
                 days = _last_day(yi, mo)
-                yield Month(1900 + yi, mo, False), MonthInfo(days, start)
+                yield Month(1900 + yi, mo, False), MonthInfo(days, start, ordinal)
                 start += timedelta(days=days)
+                ordinal += days
         # 闰年（有唯一一个闰月）
         else:
             for mo in mos[:lmo]:
                 days = _last_day(yi, mo)
-                yield Month(1900 + yi, mo, False), MonthInfo(days, start)
+                yield Month(1900 + yi, mo, False), MonthInfo(days, start, ordinal)
                 start += timedelta(days=days)
+                ordinal += days
             # -------- 当年的闰月
             days = _last_day(yi, )
-            yield Month(1900 + yi, lmo, True), MonthInfo(days, start)
+            yield Month(1900 + yi, lmo, True), MonthInfo(days, start, ordinal)
             start += timedelta(days=days)
+            ordinal += days
             # --------
             for mo in mos[lmo:]:
                 days = _last_day(yi, mo)
-                yield Month(1900 + yi, mo, False), MonthInfo(days, start)
+                yield Month(1900 + yi, mo, False), MonthInfo(days, start, ordinal)
                 start += timedelta(days=days)
+                ordinal += days
     # 农历2100年有效数据只有一到十一月总共11个平月
     for mo in mos[:-1]:
         days = _last_day(eyi, mo)
-        yield Month(1900 + eyi, mo, False), MonthInfo(days, start)
+        yield Month(1900 + eyi, mo, False), MonthInfo(days, start, ordinal)
         start += timedelta(days=days)
-
-
-def _calc_ordinals(months: dict[Month, MonthInfo]):
-    ordinal = 0
-    for m in months:
-        yield m, ordinal
-        ordinal += months[m].days
+        ordinal += days
 
 
 # 以月份为键，月份信息为值
 MONTHS: dict[Month, MonthInfo] = dict(_unzip_months())
-
-# 以月初公历日期为键，日序数为值
-ORDINALS: dict[Month, int] = dict(_calc_ordinals(MONTHS))
 
 # 以月初公历日期为键，月份及总天数为值
 NEW_MOONS: dict[date, tuple] = {
@@ -382,7 +380,7 @@ class ChineseCalendarDate(object):
             raise OverflowError(
                 '超出农历日期范围。'
             )
-        ordinals = tuple(ORDINALS.values())
+        ordinals = tuple(v.ordinal for v in MONTHS.values())
         le, ri, mid = 1, len(ordinals) - 1, len(ordinals) // 2
         while ri - le > 1:
             if ordinals[mid] < __n:
@@ -396,9 +394,9 @@ class ChineseCalendarDate(object):
         else:
             mi = mid
 
-        month = tuple(ORDINALS.keys())[mi]
+        month = tuple(MONTHS.keys())[mi]
         y, m, leap = month
-        d = __n - ORDINALS[month]
+        d = __n - MONTHS[month].ordinal
         return cls.__new__(cls, y, m, d, leap)
 
     fromordinal = from_ordinal
@@ -643,7 +641,7 @@ class ChineseCalendarDate(object):
 
     def to_ordinal(self) -> int:
         month = Month(self._year, self._month, self._leap)
-        return ORDINALS[month] + self._day
+        return MONTHS[month].ordinal + self._day
 
     toordinal = to_ordinal
 
