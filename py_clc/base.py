@@ -98,11 +98,11 @@ def _check_date_range(y, m, d, leap) -> NoReturn:
     prefix = '闰' if leap else ''
     if (month := Month(y, m, leap)) not in MONTHS:
         raise ValueError(
-            f'农历{y}年没有{prefix}{m}月。'
+            f'农历 {y}年 没有 {prefix}{m}月。'
         )
     if not d <= MONTHS[month].days:
         raise ValueError(
-            f'提供的农历日 {d} 不在农历{y}年{prefix}{m}月中。'
+            f'农历 {y}年 {prefix}{m}月 没有 {d} 日。'
         )
 
 
