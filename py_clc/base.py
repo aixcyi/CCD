@@ -53,6 +53,8 @@ DATAS = (
     0x192c, 0xf99c, 0x0aac, 0x156a, 0xb5a5, 0x0da4, 0x1d4a, 0x8e54, 0x0d16, 0x10d2e,  # 2081-2090
     0x0956, 0x0ab6, 0xcaad, 0x16d4, 0x0ea4, 0x972a, 0x168a, 0x1516, 0x549e, 0x0956,  # 2091-2100
 )
+CHARS_MON = {v: k for k, v in ORDS_MON.items()} | {'冬': 11, '腊': 12}
+CHARS_DAY = {v: k for k, v in ORDS_DAY.items()} | {'卄': 20, '卅': 30}
 
 
 def _check_date_fields(y, m, d, leap) -> NoReturn:
@@ -323,11 +325,11 @@ class ChineseCalendarDate(object):
                 f'日期缺少年、月或日。'
             )
         y = int(y)
-        leap = m.startswith('闰閏')
+        leap = m.startswith('闰') or m.startswith('閏')
         m = m[1:] if leap else m
         try:
-            m = int(m) if m.isdecimal() else ORDS_MON[m]
-            d = int(d) if d.isdecimal() else ORDS_DAY[d]
+            m = int(m) if m.isdecimal() else CHARS_MON[m]
+            d = int(d) if d.isdecimal() else CHARS_DAY[d]
         except KeyError as e:
             raise ValueError(
                 f'无法识别的表述："{e.args[0]}"'
