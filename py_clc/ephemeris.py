@@ -6,7 +6,7 @@ from typing import NoReturn
 import ephem
 
 from py_clc.base import (
-    ChineseCalendarDate as _Date,
+    FastCCD,
     _check_date_fields as _check_fields,
 )
 
@@ -144,7 +144,7 @@ def _get_months(_year: int):
     return _curr
 
 
-class ChineseCalendarDate(_Date):
+class ChineseCalendarDate(FastCCD):
 
     def __new__(cls, year, month=1, day=1, is_leap_month: bool = False):
         _check_date_fields(year, month, day, is_leap_month)
@@ -223,7 +223,7 @@ class ChineseCalendarDate(_Date):
             n = self.to_ordinal() - days
             assert 0 < n
             return self.from_ordinal(n)
-        elif isinstance(other, _Date):
+        elif isinstance(other, FastCCD):
             n = self.to_ordinal() - other.to_ordinal()
             assert 0 < n
             return self.from_ordinal(n)
@@ -241,6 +241,8 @@ class ChineseCalendarDate(_Date):
 
     toordinal = to_ordinal
 
+
+EphemCCD = ChineseCalendarDate
 
 if __name__ == '__main__':
     ccd = ChineseCalendarDate.from_date(date(2022, 11, 2))

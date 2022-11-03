@@ -663,6 +663,8 @@ ChineseCalendarDate.MAX = ChineseCalendarDate(*CCD_MAX)
 因为数据没有显示农历2100年十二月是大月还是小月，故舍弃。
 """
 
+FastCCD = ChineseCalendarDate
+
 if __name__ == '__main__':
     ccd = ChineseCalendarDate.fromordinal(CCD_ORDINAL_MIN)
     assert ccd.timetuple() == CCD_MIN
