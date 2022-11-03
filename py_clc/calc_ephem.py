@@ -41,15 +41,17 @@ def reset(_time: datetime) -> datetime:
 def _check_date_fields(y, m, d, leap) -> NoReturn:
     # 基础检查
     _check_fields(y, m, d, leap)
-
     # 岁首在十一月，所以如果提供的农历月在十一月之后，就需要枚举下一个农历年的农历月。
     months = _enum_months(y if y < 11 else (y + 1))
-
+    prefix = '闰' if leap else ''
     if (_month := (y, leap)) not in months:
-        prefix = '闰' if leap else ''
-        raise ValueError(f'农历{y}年没有{prefix}{y}月。')
+        raise ValueError(
+            f'农历 {y}年 没有 {prefix}{m}月。'
+        )
     if not d <= months[_month][0]:
-        raise ValueError(f'提供的农历日 {d} 超过了当月日期范围。')
+        raise ValueError(
+            f'农历 {y}年 {prefix}{m}月 没有 {d} 日。'
+        )
 
 
 def _check_if_leap(prev_new_moon: datetime, next_new_moon: datetime, epoch) -> bool:
