@@ -394,9 +394,14 @@ class ChineseCalendarDate(object):
         else:
             mi = mid
 
-        month = tuple(MONTHS.keys())[mi]
+        months = tuple(MONTHS.keys())
+        if MONTHS[months[-1]].ordinal <= __n:
+            _y, _m, _, _leap = CCD_MAX
+            month = Month(_y, _m, _leap)
+        else:
+            month = months[mi]
         y, m, leap = month
-        d = __n - MONTHS[month].ordinal
+        d = __n - MONTHS[month].ordinal + 1
         return cls.__new__(cls, y, m, d, leap)
 
     fromordinal = from_ordinal
