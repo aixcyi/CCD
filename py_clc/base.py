@@ -173,7 +173,7 @@ def _strftime(self, fmt):
 
 class Month(NamedTuple):
     year: int
-    ordinal: int
+    m_ord: int
     is_leap: bool
 
 
