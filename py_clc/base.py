@@ -674,10 +674,10 @@ if __name__ == '__main__':
     assert ccd < ChineseCalendarDate(2020, 5, 1, False)
     assert ccd > ChineseCalendarDate(2020, 4, 28, True)
 
-    ccd = ChineseCalendarDate.fromordinal(CCD_ORDINAL_MIN)
-    assert ccd.timetuple() == CCD_MIN
-    ccd = ChineseCalendarDate.fromordinal(CCD_ORDINAL_MAX)
-    assert ccd.timetuple() == CCD_MAX
+    ccd2 = ChineseCalendarDate.fromordinal(CCD_ORDINAL_MIN)
+    assert ccd2.timetuple() == CCD_MIN
+    ccd2 = ChineseCalendarDate.fromordinal(CCD_ORDINAL_MAX)
+    assert ccd2.timetuple() == CCD_MAX
 
     ccd2 = ccd + timedelta(days=0)
     assert ccd.timetuple() == ccd2.timetuple()
