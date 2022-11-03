@@ -1,5 +1,5 @@
 try:
     import ephem
-    from py_clc.calc_ephem import ChineseCalendarDate
+    from py_clc.ephemeris import ChineseCalendarDate
 except ImportError:
     from py_clc.base import ChineseCalendarDate
