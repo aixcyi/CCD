@@ -381,7 +381,7 @@ class ChineseCalendarDate(object):
                 '超出农历日期范围。'
             )
         ordinals = tuple(v.ordinal for v in MONTHS.values())
-        le, ri, mid = 1, len(ordinals) - 1, len(ordinals) // 2
+        le, ri, mid = 0, len(ordinals) - 1, len(ordinals) // 2
         while ri - le > 1:
             if ordinals[mid] < __n:
                 le = mid
