@@ -127,6 +127,21 @@ def _enum_months(_year: int) -> OrderedDict[tuple[int, bool], tuple[int, date]]:
     raise RuntimeError(f'合朔超过十二次但没有找到 {_year} 年的闰月。')
 
 
+def _get_months(_year: int):
+    """
+    获取当前农历年的所有月份。
+    """
+    _curr = _enum_months(_year)
+    _next = _enum_months(_year + 1)
+    _curr.popitem(last=False)
+    _curr.popitem(last=False)
+    _curr.update(OrderedDict(
+        (_next.popitem(last=False),
+         _next.popitem(last=False))
+    ))
+    return _curr
+
+
 class ChineseCalendarDate(_Date):
 
     def __new__(cls, year, month=1, day=1, is_leap_month: bool = False):
@@ -167,31 +182,19 @@ class ChineseCalendarDate(_Date):
 
     # 只读属性
 
-    @staticmethod
-    def months(_year: int):
-        _curr = _enum_months(_year)
-        _next = _enum_months(_year + 1)
-        _curr.popitem(last=False)
-        _curr.popitem(last=False)
-        _curr.update(OrderedDict(
-            (_next.popitem(last=False),
-             _next.popitem(last=False))
-        ))
-        return _curr
-
     @property
     def days_in_year(self) -> int:
-        months = self.months(self._year)
+        months = _get_months(self._year)
         return sum(months[month][0] for month in months)
 
     @property
     def days_in_month(self) -> int:
-        months = self.months(self._year)
+        months = _get_months(self._year)
         return months[(self._month, self._leap)][0]
 
     @property
     def day_of_year(self) -> int:
-        months = self.months(self._year)
+        months = _get_months(self._year)
         _month = (self._month, self._leap)
         return sum(days for m, days in months.items() if m < _month) + self._day
 
@@ -235,3 +238,8 @@ class ChineseCalendarDate(_Date):
         return self.to_date().toordinal()
 
     toordinal = to_ordinal
+
+
+if __name__ == '__main__':
+    ccd = ChineseCalendarDate.from_date(date(2022, 11, 2))
+    print(ccd is None)
