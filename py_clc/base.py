@@ -53,6 +53,8 @@ DATAS = (
     0x192c, 0xf99c, 0x0aac, 0x156a, 0xb5a5, 0x0da4, 0x1d4a, 0x8e54, 0x0d16, 0x10d2e,  # 2081-2090
     0x0956, 0x0ab6, 0xcaad, 0x16d4, 0x0ea4, 0x972a, 0x168a, 0x1516, 0x549e, 0x0956,  # 2091-2100
 )
+CHARS_MON = {v: k for k, v in ORDS_MON.items()} | {'冬': 11, '腊': 12}
+CHARS_DAY = {v: k for k, v in ORDS_DAY.items()} | {'卄': 20, '卅': 30}
 
 
 def _check_date_fields(y, m, d, leap) -> NoReturn:
@@ -69,7 +71,7 @@ def _check_date_fields(y, m, d, leap) -> NoReturn:
             not isinstance(d, int)
     ):
         raise TypeError('year、month、day 必须是整数类型。')
-    if leap is not True or leap is not False:
+    if leap is not True and leap is not False:
         raise TypeError('is_leap_month 必须是布尔类型。')
     if not 1 <= m <= 12:
         raise ValueError('农历月只能是一个从 1 到 12 的整数。')
@@ -96,11 +98,11 @@ def _check_date_range(y, m, d, leap) -> NoReturn:
     prefix = '闰' if leap else ''
     if (month := Month(y, m, leap)) not in MONTHS:
         raise ValueError(
-            f'农历{y}年没有{prefix}{m}月。'
+            f'农历 {y}年 没有 {prefix}{m}月。'
         )
     if not d <= MONTHS[month].days:
         raise ValueError(
-            f'提供的农历日 {d} 不在农历{y}年{prefix}{m}月中。'
+            f'农历 {y}年 {prefix}{m}月 没有 {d} 日。'
         )
 
 
@@ -109,64 +111,64 @@ def _compile(fmt):
         raise TypeError(
             '请以字符串形式提供农历日期格式。'
         )
-    i, length = -1, len(fmt)
+    i, length = 0, len(fmt)
     while i < length:
-        i += 1
         if (c := fmt[i]) != '%':
             yield c
-            continue
-        if i + 1 == length:
-            raise ValueError(
-                f'无法解析格式化符号 "%"，所在位置 {i}'
-            )
-        match (c := fmt[(i := i + 1)]):
-            case 'Y':
-                yield r'(?P<year>[0-9]{1,})'
-            case 'm':
-                yield r'(?P<month>[闰閏]?(0[1-9]|1[012]))'
-            case 'd':
-                yield r'(?P<day>[1-9]|[12][0-9]|30)'
-            case 'b':
-                yield r'(?P<month>[闰閏]?([正二三四五六七八九冬腊]|十一|十二))'
-            case 'a':
-                yield r'(?P<day>[初十廿][一二三四五六七八九]|[初二三]十|[卄卅])'
-            case '%':
-                yield r'%'
-            case _:
+        else:
+            if i + 1 == length:
                 raise ValueError(
-                    f'无法解析格式化符号 "{c}"，所在位置 {i}'
+                    f'无法解析格式化符号 "%"，所在位置 {i}'
                 )
+            match (c := fmt[(i := i + 1)]):
+                case 'Y':
+                    yield r'(?P<year>[0-9]{1,})'
+                case 'm':
+                    yield r'(?P<month>[闰閏]?(0[1-9]|1[012]))'
+                case 'd':
+                    yield r'(?P<day>[1-9]|[12][0-9]|30)'
+                case 'b':
+                    yield r'(?P<month>[闰閏]?([正二三四五六七八九冬腊]|十一|十二))'
+                case 'a':
+                    yield r'(?P<day>[初十廿][一二三四五六七八九]|[初二三]十|[卄卅])'
+                case '%':
+                    yield r'%'
+                case _:
+                    raise ValueError(
+                        f'无法解析格式化符号 "{c}"，所在位置 {i}'
+                    )
+        i += 1
 
 
 def _strftime(self, fmt):
     leap = '闰' if self._leap else ''
-    i, n = -1, len(fmt)
+    i, n = 0, len(fmt)
     while i < n:
-        i += 1
         if fmt[i] != '%':
             yield fmt[i]
-            continue
-        if i == n - 1:  # 枚举到最后一个字符
-            raise ValueError(f'无法解析格式化符号 "%"，所在位置 {i}')
-        match (flag := fmt[i := i + 1]):  # 取下一个字符
-            case 'Y':
-                yield f'{self._year:04d}'
-            case 'm':
-                yield f'{self._month:02d}'
-            case 'd':
-                yield f'{self._day:02d}'
-            case 'G':
-                yield self.year_stem_branch
-            case 'g':
-                yield self.year_zodiac
-            case 'b':
-                yield leap + ORDS_MON[self._month]
-            case 'a':
-                yield ORDS_DAY[self._day]
-            case '%':
-                yield '%'
-            case _:
-                raise ValueError(f'无法解析格式化符号 "%{flag}"，所在位置 {i}')
+        else:
+            if i == n - 1:  # 枚举到最后一个字符
+                raise ValueError(f'无法解析格式化符号 "%"，所在位置 {i}')
+            match (flag := fmt[i := i + 1]):  # 取下一个字符
+                case 'Y':
+                    yield f'{self._year:04d}'
+                case 'm':
+                    yield f'{self._month:02d}'
+                case 'd':
+                    yield f'{self._day:02d}'
+                case 'G':
+                    yield self.year_stem_branch
+                case 'g':
+                    yield self.year_zodiac
+                case 'b':
+                    yield leap + ORDS_MON[self._month]
+                case 'a':
+                    yield ORDS_DAY[self._day]
+                case '%':
+                    yield '%'
+                case _:
+                    raise ValueError(f'无法解析格式化符号 "%{flag}"，所在位置 {i}')
+        i += 1
 
 
 class Month(NamedTuple):
@@ -178,6 +180,7 @@ class Month(NamedTuple):
 class MonthInfo(NamedTuple):
     days: int
     start: date
+    ordinal: int
 
 
 def _leap_month(yi) -> int:
@@ -208,53 +211,50 @@ def _unzip_months():
     """
     mos = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)  # 平年所有月份的序数
     start = DATE_MIN.replace()
+    ordinal = CCD_ORDINAL_MIN
 
     # -------- 农历1900年有效数据只有十二月1个平月
     days = _last_day(0, mos[-1])
-    yield Month(1900, mos[-1], False), MonthInfo(days, start)
+    yield Month(1900, mos[-1], False), MonthInfo(days, start, ordinal)
     start += timedelta(days=days)
+    ordinal += days
     # --------
     for yi in range(1, (eyi := len(DATAS) - 1)):  # 1901~2099
         # 平年（没有闰月）
         if (lmo := _leap_month(yi)) == 0:
             for mo in mos:
                 days = _last_day(yi, mo)
-                yield Month(1900 + yi, mo, False), MonthInfo(days, start)
+                yield Month(1900 + yi, mo, False), MonthInfo(days, start, ordinal)
                 start += timedelta(days=days)
+                ordinal += days
         # 闰年（有唯一一个闰月）
         else:
             for mo in mos[:lmo]:
                 days = _last_day(yi, mo)
-                yield Month(1900 + yi, mo, False), MonthInfo(days, start)
+                yield Month(1900 + yi, mo, False), MonthInfo(days, start, ordinal)
                 start += timedelta(days=days)
+                ordinal += days
             # -------- 当年的闰月
             days = _last_day(yi, )
-            yield Month(1900 + yi, lmo, True), MonthInfo(days, start)
+            yield Month(1900 + yi, lmo, True), MonthInfo(days, start, ordinal)
             start += timedelta(days=days)
+            ordinal += days
             # --------
             for mo in mos[lmo:]:
                 days = _last_day(yi, mo)
-                yield Month(1900 + yi, mo, False), MonthInfo(days, start)
+                yield Month(1900 + yi, mo, False), MonthInfo(days, start, ordinal)
                 start += timedelta(days=days)
+                ordinal += days
     # 农历2100年有效数据只有一到十一月总共11个平月
     for mo in mos[:-1]:
         days = _last_day(eyi, mo)
-        yield Month(1900 + eyi, mo, False), MonthInfo(days, start)
+        yield Month(1900 + eyi, mo, False), MonthInfo(days, start, ordinal)
         start += timedelta(days=days)
-
-
-def _calc_ordinals(months: dict[Month, MonthInfo]):
-    ordinal = 0
-    for m in months:
-        yield m, ordinal
-        ordinal += months[m].days
+        ordinal += days
 
 
 # 以月份为键，月份信息为值
 MONTHS: dict[Month, MonthInfo] = dict(_unzip_months())
-
-# 以月初公历日期为键，日序数为值
-ORDINALS: dict[Month, int] = dict(_calc_ordinals(MONTHS))
 
 # 以月初公历日期为键，月份及总天数为值
 NEW_MOONS: dict[date, tuple] = {
@@ -323,11 +323,11 @@ class ChineseCalendarDate(object):
                 f'日期缺少年、月或日。'
             )
         y = int(y)
-        leap = m.startswith('闰閏')
+        leap = m.startswith('闰') or m.startswith('閏')
         m = m[1:] if leap else m
         try:
-            m = int(m) if m.isdecimal() else ORDS_MON[m]
-            d = int(d) if d.isdecimal() else ORDS_DAY[d]
+            m = int(m) if m.isdecimal() else CHARS_MON[m]
+            d = int(d) if d.isdecimal() else CHARS_DAY[d]
         except KeyError as e:
             raise ValueError(
                 f'无法识别的表述："{e.args[0]}"'
@@ -380,8 +380,8 @@ class ChineseCalendarDate(object):
             raise OverflowError(
                 '超出农历日期范围。'
             )
-        ordinals = tuple(ORDINALS.values())
-        le, ri, mid = 1, len(ordinals) - 1, len(ordinals) // 2
+        ordinals = tuple(v.ordinal for v in MONTHS.values())
+        le, ri, mid = 0, len(ordinals) - 1, len(ordinals) // 2
         while ri - le > 1:
             if ordinals[mid] < __n:
                 le = mid
@@ -394,9 +394,14 @@ class ChineseCalendarDate(object):
         else:
             mi = mid
 
-        month = tuple(ORDINALS.keys())[mi]
+        months = tuple(MONTHS.keys())
+        if MONTHS[months[-1]].ordinal <= __n:
+            _y, _m, _, _leap = CCD_MAX
+            month = Month(_y, _m, _leap)
+        else:
+            month = months[mi]
         y, m, leap = month
-        d = __n - ORDINALS[month]
+        d = __n - MONTHS[month].ordinal + 1
         return cls.__new__(cls, y, m, d, leap)
 
     fromordinal = from_ordinal
@@ -494,12 +499,13 @@ class ChineseCalendarDate(object):
         """
         数序纪月法表示的农历月份。
 
-        不会以 ”月“ 结尾。
+        第一个月使用 “正”月 表述，
+        往后的月份均使用小写数字表示，比如 “六”月、“十二”月。
 
-        除了第一个月使用 ”正月“ 表达外，其它月份都与小写数字无异。
-        比如 ”六月“、”十二月“ 等。
+        不会以 ”月“ 结尾。当该月是闰月时会以 “闰” 开头。
         """
-        return ORDS_MON[self._month]
+        prefix = '闰' if self._leap else ''
+        return prefix + ORDS_MON[self._month]
 
     @property
     def day_ordinal(self) -> str:
@@ -640,7 +646,7 @@ class ChineseCalendarDate(object):
 
     def to_ordinal(self) -> int:
         month = Month(self._year, self._month, self._leap)
-        return ORDINALS[month] + self._day
+        return MONTHS[month].ordinal + self._day - 1
 
     toordinal = to_ordinal
 
@@ -656,3 +662,43 @@ ChineseCalendarDate.MAX = ChineseCalendarDate(*CCD_MAX)
 当前模块支持计算的最晚的农历日期。\n
 因为数据没有显示农历2100年十二月是大月还是小月，故舍弃。
 """
+
+if __name__ == '__main__':
+    ccd = ChineseCalendarDate.fromordinal(CCD_ORDINAL_MIN)
+    assert ccd.timetuple() == CCD_MIN
+    assert ccd.toordinal() == CCD_ORDINAL_MIN
+    ccd = ChineseCalendarDate.fromordinal(CCD_ORDINAL_MAX)
+    assert ccd.timetuple() == CCD_MAX
+    assert ccd.toordinal() == CCD_ORDINAL_MAX
+    ccd = ChineseCalendarDate.strptime('农历2020年闰四月廿九', '农历%Y年%b月%a')
+    assert ccd.timetuple() == (2020, 4, 29, True)
+
+    ccd = ChineseCalendarDate(2020, 4, 29, True)
+    assert ccd.timetuple() == (2020, 4, 29, True)
+    assert ccd.day_of_year == 148  # 这一天是当年的第148天
+    assert ccd.days_in_year == 384  # 农历2020年总共384天（2020.1.25-2021.2.11）
+    assert ccd.days_in_month == 29  # 农历2020年闰四月总共29天
+    assert ccd.year_stem_branch == '庚子'
+    assert ccd.year_zodiac == '鼠'
+    assert ccd.month_ordinal == '闰四'
+    assert ccd.day_ordinal == '廿九'
+    assert str(ccd) == '农历2020年闰四月廿九'
+    gcd = ccd.to_date()
+    assert gcd == date(2020, 6, 20)
+    ccd = ChineseCalendarDate.from_date(date(2020, 6, 20))
+    assert ccd.timetuple() == (2020, 4, 29, True)
+
+    today = ChineseCalendarDate(2020, 4, 29, True)
+    tomorrow = today + timedelta(days=1)
+    yesterday = today - timedelta(days=1)
+    assert tomorrow.timetuple() == (2020, 5, 1, False)
+    assert yesterday.timetuple() == (2020, 4, 28, True)
+    assert today < tomorrow
+    assert today > yesterday
+
+    today2 = today + timedelta(days=0)
+    assert today.timetuple() == today2.timetuple()
+    assert id(today) != id(today2)
+    today2 = today - timedelta(days=0)
+    assert today.timetuple() == today2.timetuple()
+    assert id(today) != id(today2)
