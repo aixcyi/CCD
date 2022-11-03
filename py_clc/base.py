@@ -646,7 +646,7 @@ class ChineseCalendarDate(object):
 
     def to_ordinal(self) -> int:
         month = Month(self._year, self._month, self._leap)
-        return MONTHS[month].ordinal + self._day
+        return MONTHS[month].ordinal + self._day - 1
 
     toordinal = to_ordinal
 
@@ -666,8 +666,10 @@ ChineseCalendarDate.MAX = ChineseCalendarDate(*CCD_MAX)
 if __name__ == '__main__':
     ccd = ChineseCalendarDate.fromordinal(CCD_ORDINAL_MIN)
     assert ccd.timetuple() == CCD_MIN
+    assert ccd.toordinal() == CCD_ORDINAL_MIN
     ccd = ChineseCalendarDate.fromordinal(CCD_ORDINAL_MAX)
     assert ccd.timetuple() == CCD_MAX
+    assert ccd.toordinal() == CCD_ORDINAL_MAX
     ccd = ChineseCalendarDate.strptime('农历2020年闰四月廿九', '农历%Y年%b月%a')
     assert ccd.timetuple() == (2020, 4, 29, True)
 
