@@ -1,7 +1,7 @@
 import math
 from collections import OrderedDict
-from datetime import date, timedelta, datetime
-from typing import NoReturn
+from datetime import date, timedelta, datetime, time
+from typing import NoReturn, NamedTuple
 
 import ephem
 
@@ -10,131 +10,106 @@ from py_clc.base import (
     _check_date_fields as _check_fields,
 )
 
-
-def r2d(rad) -> float:
-    """
-    弧度（radian）转角度（degrees）。
-    """
-    if isinstance(rad, ephem.Angle):
-        return rad.norm / math.pi * 180  # [0,2*pi)
-    else:
-        return rad / math.pi * 180
+DELTA = timedelta(hours=8)  # 零时区和东八区的时差
 
 
-def calc(_time, epoch) -> ephem.Angle:
+class Month(NamedTuple):
+    ords: int
+    is_leap: bool
+
+    @classmethod
+    def fromtuple(cls, t: tuple):
+        return cls(*t)
+
+
+class MonthInfo(NamedTuple):
+    start: date  # 东八区下的日期
+    days: int
+
+
+def _calc(_time, epoch) -> ephem.Angle:
     """
     求太阳某个时刻的地心视黄经。
     """
     sun = ephem.Sun(_time)
     equ = ephem.Equatorial(sun.ra, sun.dec, epoch=epoch)
     ecl = ephem.Ecliptic(equ)
-    return ecl.lon
+    return abs(ecl.lon.norm / math.pi * 180)  # [0,2*pi)
 
 
-def reset(_time: datetime) -> datetime:
+def _check_if_leap(prev_date: date,
+                   next_date: date,
+                   epoch: ephem.Date) -> bool:
     """
-    略去 datetime 中的 time，只保留 date 部分。
+    判断两个朔日之间是否没有中气。
     """
-    return _time.replace(hour=0, minute=0, second=0, microsecond=0)
+    # UTC+8 转 UTC+0，并将时间拨到 上个朔日当天第一秒，下个朔日的前一天最后一秒
+    pt = datetime.combine(prev_date, time()) - DELTA
+    nt = datetime.combine(next_date, time()) - DELTA - timedelta(seconds=1)
+
+    # 计算地心视黄经
+    pr = _calc(pt, epoch=epoch)
+    nr = _calc(nt, epoch=epoch)
+    nr = nr if pr <= nr else (360 + nr)
+
+    # 地心视黄经为 0° 或 30° 的整数倍时，那一天即为中气
+    pd, pm = divmod(pr, 30)
+    nd, nm = divmod(nr, 30)
+    return pd == nd and pm != 0 != nm
 
 
-def _check_date_fields(y, m, d, leap) -> NoReturn:
-    # 基础检查
-    _check_fields(y, m, d, leap)
-    # 岁首在十一月，所以如果提供的农历月在十一月之后，就需要枚举下一个农历年的农历月。
-    months = _enum_months(y if y < 11 else (y + 1))
-    prefix = '闰' if leap else ''
-    if (_month := (y, leap)) not in months:
-        raise ValueError(
-            f'农历 {y}年 没有 {prefix}{m}月。'
-        )
-    if not d <= months[_month][0]:
-        raise ValueError(
-            f'农历 {y}年 {prefix}{m}月 没有 {d} 日。'
-        )
-
-
-def _check_if_leap(prev_new_moon: datetime, next_new_moon: datetime, epoch) -> bool:
-    """
-    判断从上个朔日当天到下个朔日之前的时间段内是否有中气。
-    """
-    # 将时间修正到：上个朔日当天第一秒，下个朔日的前一天最后一秒
-    prev_time = reset(prev_new_moon)
-    next_time = reset(next_new_moon) - timedelta(seconds=1)
-
-    # 涉及计算的，必须将 UTC+8 时间转回 UTC+0 时间
-    prev_lon = abs(r2d(calc(prev_time - timedelta(hours=8), epoch=epoch)))
-    next_lon = abs(r2d(calc(next_time - timedelta(hours=8), epoch=epoch)))
-
-    # 如果度数从 270° 一侧跨越 0° 到 90° 一侧，就会满足这个条件，
-    # 那么 +360° 改为 prev_lon < next_lon 更方便判断。
-    # 如果没有跨越，那么一定是 prev_lon < next_lon
-    if prev_lon > next_lon:
-        next_lon += 360
-    # print(prev_time, next_time, prev_lon, next_lon, sep='   \t')
-
-    # 到达中气的时候，地心视黄经是 0° ，或者是 30° 的整数倍。
-    # 因此如果两个月初时刻的地心视黄经之间有 0° ，或者 30° 的整数倍，
-    # 那么这个月就有中气，反之则表示没有。
-    # 自岁首（十一月）开始的第一个无中气月是闰月，后续直至岁末（十月/闰十月）都不再置闰。
-    for angle in range(0, 720, 30):
-        if prev_lon <= angle <= next_lon:
-            return False
-    return True
-
-
-def _enum_months(_year: int) -> OrderedDict[tuple[int, bool], tuple[int, date]]:
+def _enum_months(year: int) -> OrderedDict[Month, MonthInfo]:
     """
     枚举公历年去年冬至所在月份（农历十一月）至
     公历当年冬至前一个月份（农历十月/闰十月）之间的所有农历月。
     """
-    # 获取去年十一月到今年十一月的朔日（两端点是包含冬至的月份，所以必定不是闰十一月）。
-    # 农历以北京时间为准，所以需要将 UTC+0 时间转换为 UTC+8 时间。
-    prev = ephem.previous_solstice(str(_year))
-    curr = ephem.previous_solstice(str(_year + 1))
-    days = [ephem.previous_new_moon(prev).datetime() + timedelta(hours=8)]
-    day = prev
-    day = ephem.next_new_moon(day)
-    while day <= curr:
-        days.append(day.datetime() + timedelta(hours=8))
-        day = ephem.next_new_moon(day)
+    # 获取去年和今年的冬至（Winter Solstice）
+    pws = ephem.previous_solstice(str(year))
+    nws = ephem.previous_solstice(str(year + 1))
+
+    # 求出每个月的初一（从去年冬至前的朔日到今年冬至前的朔日）
+    starts: list[date] = []
+    start: ephem.Date = ephem.previous_new_moon(pws)
+    while start < nws:
+        starts.append((start.datetime() + DELTA).date())  # 转换为东八区当天凌晨零点
+        start = ephem.next_new_moon(start)
 
     mos = (11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)  # (month-ordinal)s
     tags = (False,) * 12  # (is_leap_month)s
 
-    # 最后一次合朔在农历今年十一月的，不在同一个统计周期，故减去。
-    # 合朔12次则不置闰，所有月份都是非闰月。
-    if (times := len(days) - 1) == 12:
-        days = tuple(_d.date() for _d in days)
-        keys = ((_m, False) for _m in mos)
-        vals = (
-            ((days[i + 1] - days[i]).days, days[i])
-            for i in range(len(days) - 1)
+    # 合朔12次则不置闰
+    if (times := len(starts) - 1) == 12:
+        return OrderedDict(
+            (
+                Month(mos[i], False),
+                MonthInfo(starts[i], (starts[i + 1] - starts[i]).days)
+            )
+            for i in range(times)
         )
-        return OrderedDict(zip(keys, vals))
 
-    # 合朔超过12次则需要置闰，闰月为自岁首(十一月)开始的第一个无中气月。
+    # 合朔超过12次，闰月为冬至所在月开始的第一个无中气月
     for i in range(times):
-        if _check_if_leap(days[i], days[i + 1], epoch=prev):
-            days = tuple(_d.date() for _d in days)
-            keys = zip(
-                mos[:i] + (mos[i - 1],) + mos[i:],
-                tags[:i] + (True,) + tags[i:]
-            )
+        cs = starts[i]
+        ns = starts[i + 1]
+        if _check_if_leap(cs, ns, epoch=pws):
             vals = (
-                ((days[i + 1] - days[i]).days, days[i])
-                for i in range(len(days) - 1)
+                MonthInfo(cs, (ns - cs).days)
+                for i in range(times)
             )
+            keys = map(Month.fromtuple, zip(
+                mos[:i] + (mos[i - 1],) + mos[i:],
+                tags[:i] + (True,) + tags[i:],
+            ))
             return OrderedDict(zip(keys, vals))
-    raise RuntimeError(f'合朔超过十二次但没有找到 {_year} 年的闰月。')
+    raise RuntimeError(f'合朔超过十二次但没有找到 {year} 年的闰月。')
 
 
-def _get_months(_year: int):
+def _get_months(year: int):
     """
     获取当前农历年的所有月份。
     """
-    _curr = _enum_months(_year)
-    _next = _enum_months(_year + 1)
+    _curr = _enum_months(year)
+    _next = _enum_months(year + 1)
     _curr.popitem(last=False)
     _curr.popitem(last=False)
     _curr.update(OrderedDict(
@@ -142,6 +117,22 @@ def _get_months(_year: int):
          _next.popitem(last=False))
     ))
     return _curr
+
+
+def _check_date_fields(y, m, d, leap) -> NoReturn:
+    # 基础检查
+    _check_fields(y, m, d, leap)
+    # 岁首在十一月，所以如果提供的农历月在十一月之后，就需要枚举下一个农历年的农历月。
+    months = _enum_months(y if m < 11 else (y + 1))
+    prefix = '闰' if leap else ''
+    if (_month := Month(m, leap)) not in months:
+        raise ValueError(
+            f'农历 {y}年 没有 {prefix}{m}月。'
+        )
+    if not d <= months[_month].days:
+        raise ValueError(
+            f'农历 {y}年 {prefix}{m}月 没有 {d} 日。'
+        )
 
 
 class ChineseCalendarDate(FastCCD):
@@ -166,15 +157,15 @@ class ChineseCalendarDate(FastCCD):
         months = _enum_months(_date.year if solstice <= _date else (_date.year - 1))
         last_moon = None
         last_info = None
-        for _m in months:
-            if months[_m][1] == _date:
-                return cls(_date.year, _m[0], 1, _m[1])
-            elif months[_m][1] < _date:
-                last_moon = _m
-                last_info = months[_m]
+        for m in months:
+            if months[m].start == _date:
+                return cls(_date.year, m.ords, 1, m.is_leap)
+            elif months[m].start < _date:
+                last_moon = m
+                last_info = months[m]
             else:
-                day = (last_info[1] - _date).days
-                return cls(_date.year, last_moon[0], day, last_moon[1])
+                day = (_date - last_info.start).days + 1
+                return cls(_date.year, last_moon.ords, day, last_moon.is_leap)
 
     @classmethod
     def from_ordinal(cls, n) -> 'ChineseCalendarDate':
@@ -187,18 +178,18 @@ class ChineseCalendarDate(FastCCD):
     @property
     def days_in_year(self) -> int:
         months = _get_months(self._year)
-        return sum(months[month][0] for month in months)
+        return sum(months[month].days for month in months)
 
     @property
     def days_in_month(self) -> int:
         months = _get_months(self._year)
-        return months[(self._month, self._leap)][0]
+        return months[Month(self._month, self._leap)].days
 
     @property
     def day_of_year(self) -> int:
         months = _get_months(self._year)
-        _month = (self._month, self._leap)
-        return sum(days for m, days in months.items() if m < _month) + self._day
+        _month = Month(self._month, self._leap)
+        return sum(info.days for m, info in months.items() if m < _month) + self._day
 
     # 计算方法
 
@@ -232,9 +223,9 @@ class ChineseCalendarDate(FastCCD):
     # 转换器
 
     def to_date(self) -> date:
-        months = _enum_months(self._year - (1 if self._month < 11 else 0))
-        start = months[(self._month, self._leap)][1]
-        return start + timedelta(days=self._day)
+        months = _enum_months(self._year - (0 if self._month < 11 else 1))
+        start = months[Month(self._month, self._leap)].start
+        return start + timedelta(days=self._day - 1)
 
     def to_ordinal(self) -> int:
         return self.to_date().toordinal()
@@ -245,5 +236,35 @@ class ChineseCalendarDate(FastCCD):
 EphemCCD = ChineseCalendarDate
 
 if __name__ == '__main__':
-    ccd = ChineseCalendarDate.from_date(date(2022, 11, 2))
-    print(ccd is None)
+    ccd = ChineseCalendarDate.strptime('农历2020年闰四月廿九', '农历%Y年%b月%a')
+    assert ccd.timetuple() == (2020, 4, 29, True)
+
+    ccd = ChineseCalendarDate(2020, 4, 29, True)
+    assert ccd.timetuple() == (2020, 4, 29, True)
+    assert ccd.day_of_year == 148  # 这一天是当年的第148天
+    assert ccd.days_in_year == 384  # 农历2020年总共384天（2020.1.25-2021.2.11）
+    assert ccd.days_in_month == 29  # 农历2020年闰四月总共29天
+    assert ccd.year_stem_branch == '庚子'
+    assert ccd.year_zodiac == '鼠'
+    assert ccd.month_ordinal == '闰四'
+    assert ccd.day_ordinal == '廿九'
+    assert str(ccd) == '农历2020年闰四月廿九'
+    gcd = ccd.to_date()
+    assert gcd == date(2020, 6, 20)
+    ccd = ChineseCalendarDate.from_date(date(2020, 6, 20))
+    assert ccd.timetuple() == (2020, 4, 29, True)
+
+    today = ChineseCalendarDate(2020, 4, 29, True)
+    tomorrow = today + timedelta(days=1)
+    yesterday = today - timedelta(days=1)
+    assert tomorrow.timetuple() == (2020, 5, 1, False)
+    assert yesterday.timetuple() == (2020, 4, 28, True)
+    assert today < tomorrow
+    assert today > yesterday
+
+    today2 = today + timedelta(days=0)
+    assert today.timetuple() == today2.timetuple()
+    assert id(today) != id(today2)
+    today2 = today - timedelta(days=0)
+    assert today.timetuple() == today2.timetuple()
+    assert id(today) != id(today2)
