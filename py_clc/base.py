@@ -57,6 +57,18 @@ CHARS_MON = {v: k for k, v in ORDS_MON.items()} | {'冬': 11, '腊': 12}
 CHARS_DAY = {v: k for k, v in ORDS_DAY.items()} | {'卄': 20, '卅': 30}
 
 
+class Month(NamedTuple):
+    year: int
+    ords: int
+    is_leap: bool
+
+
+class MonthInfo(NamedTuple):
+    start: date
+    days: int
+    ordinal: int
+
+
 def _check_date_fields(y, m, d, leap) -> NoReturn:
     """
     检查农历日期字段的类型和普遍适用的范围。
@@ -171,18 +183,6 @@ def _strftime(self, fmt):
         i += 1
 
 
-class Month(NamedTuple):
-    year: int
-    m_ord: int
-    is_leap: bool
-
-
-class MonthInfo(NamedTuple):
-    days: int
-    start: date
-    ordinal: int
-
-
 def _leap_month(yi) -> int:
     """
     从某一年的数据中取出当年的闰月。
@@ -215,7 +215,7 @@ def _unzip_months():
 
     # -------- 农历1900年有效数据只有十二月1个平月
     days = _last_day(0, mos[-1])
-    yield Month(1900, mos[-1], False), MonthInfo(days, start, ordinal)
+    yield Month(1900, mos[-1], False), MonthInfo(start, days, ordinal)
     start += timedelta(days=days)
     ordinal += days
     # --------
@@ -224,31 +224,31 @@ def _unzip_months():
         if (lmo := _leap_month(yi)) == 0:
             for mo in mos:
                 days = _last_day(yi, mo)
-                yield Month(1900 + yi, mo, False), MonthInfo(days, start, ordinal)
+                yield Month(1900 + yi, mo, False), MonthInfo(start, days, ordinal)
                 start += timedelta(days=days)
                 ordinal += days
         # 闰年（有唯一一个闰月）
         else:
             for mo in mos[:lmo]:
                 days = _last_day(yi, mo)
-                yield Month(1900 + yi, mo, False), MonthInfo(days, start, ordinal)
+                yield Month(1900 + yi, mo, False), MonthInfo(start, days, ordinal)
                 start += timedelta(days=days)
                 ordinal += days
             # -------- 当年的闰月
             days = _last_day(yi, )
-            yield Month(1900 + yi, lmo, True), MonthInfo(days, start, ordinal)
+            yield Month(1900 + yi, lmo, True), MonthInfo(start, days, ordinal)
             start += timedelta(days=days)
             ordinal += days
             # --------
             for mo in mos[lmo:]:
                 days = _last_day(yi, mo)
-                yield Month(1900 + yi, mo, False), MonthInfo(days, start, ordinal)
+                yield Month(1900 + yi, mo, False), MonthInfo(start, days, ordinal)
                 start += timedelta(days=days)
                 ordinal += days
     # 农历2100年有效数据只有一到十一月总共11个平月
     for mo in mos[:-1]:
         days = _last_day(eyi, mo)
-        yield Month(1900 + eyi, mo, False), MonthInfo(days, start, ordinal)
+        yield Month(1900 + eyi, mo, False), MonthInfo(start, days, ordinal)
         start += timedelta(days=days)
         ordinal += days
 
