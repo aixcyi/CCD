@@ -89,11 +89,9 @@ def _enum_months(year: int) -> OrderedDict[Month, MonthInfo]:
 
     # 合朔超过12次，闰月为冬至所在月开始的第一个无中气月
     for i in range(times):
-        cs = starts[i]
-        ns = starts[i + 1]
-        if _check_if_leap(cs, ns, epoch=pws):
+        if _check_if_leap(starts[i], starts[i + 1], epoch=pws):
             vals = (
-                MonthInfo(cs, (ns - cs).days)
+                MonthInfo(starts[i], (starts[i + 1] - starts[i]).days)
                 for i in range(times)
             )
             keys = map(Month.fromtuple, zip(
