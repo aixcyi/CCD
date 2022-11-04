@@ -2,7 +2,9 @@ try:
     import ephem
     from py_clc.ephemeris import ChineseCalendarDate, EphemCCD
 except ImportError:
-    from py_clc.base import ChineseCalendarDate, FastCCD
+    from py_clc.base import ChineseCalendarDate
+
+from py_clc.base import FastCCD
 
 if __name__ == '__main__':
     from datetime import date, timedelta
