@@ -11,19 +11,19 @@
   - [x] 范围有限的快速转换（`FastCCD`）
   - [x] 范围无限的计算转换（`EphemCCD`）
 - [ ] 支持 Pickle 协议
+- [x] 中文文档注释
 
-## 使用须知
+## 兼容性
 
-目前仅支持使用 Python 3.10 及以上版本运行，因为不想背负历史包袱。
-如果希望支持旧版本，请提出 [Issue](https://github.com/aixcyi/PyCLC/issues) 并注明希望支持的最低版本，或对 Issue
-点赞表态，也欢迎参与翻译。
+目前仅支持使用 Python 3.11 及以上版本运行。  
+如果希望支持旧版本，可以提出 [Issue](https://github.com/aixcyi/PyCLC/issues) 并注明希望支持的最低版本，或点赞表态，也欢迎参与翻译。
 
 ## 快速上手
 
 #### 安装
 
 ```shell
-pip install py_clc
+pip install PyCLC
 ```
 
 #### 导入
@@ -34,10 +34,9 @@ pip install py_clc
 - `py_clc.FastCCD`，无论何时都可用。
 - `py_clc.EphemCCD`，需要安装 [PyEphem](https://pypi.org/project/ephem/) 库后才可用，否则导入时会报错。
 
-区别在于，其它类任何时候都是自身，而 `py_clc.ChineseCalendarDate` 默认情况下等同于 `FastCCD`
-，安装对应所需的库后等同于 `EphemCCD` 。
+如果希望平时使用 `FastCCD` ，满足条件时自动切换为 `EphemCCD` ，那么 `py_clc.ChineseCalendarDate` 是最好也是唯一的选择。因为其它类任何时候都是自身，而 `py_clc.ChineseCalendarDate` 默认情况下等同于 `FastCCD` ，安装对应所需的库后等同于 `EphemCCD` 。
 
-不应该使用其它路径来导入农历日期类。
+不应该使用其它方式来导入 `ChineseCalendarDate` 。
 
 #### 使用
 
@@ -53,13 +52,13 @@ ccd = ChineseCalendarDate.from_date(gcd)
 print(str(ccd))
 # '农历2020年闰四月廿九'
 print(repr(ccd))
-# 'py_clc.base.ChineseCalendarDate(2020, 4, 29, True)'
+# 'py_clc.base.FastCCD(2020, 4, 29, True)'
 
 ccd += timedelta(days=1)
 print(str(ccd))
 # '农历2020年五月初一'
 print(repr(ccd))
-# 'py_clc.base.ChineseCalendarDate(2020, 5, 1, False)'
+# 'py_clc.base.FastCCD(2020, 5, 1, False)'
 
 gcd = ccd.to_date()
 print(str(gcd))
