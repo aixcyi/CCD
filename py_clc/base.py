@@ -3,7 +3,7 @@
 """
 import re
 from datetime import date, timedelta
-from typing import NamedTuple, NoReturn, Self
+from typing import NamedTuple, NoReturn, Self, TypeAlias
 
 STEMS = '甲乙丙丁戊己庚辛壬癸'
 BRANCHES = '子丑寅卯辰巳午未申酉戌亥'
@@ -28,8 +28,8 @@ DATE_MIN = date(1901, 1, 20)
 DATE_MAX = date(2100, 12, 30)
 CCD_MIN = (1900, 12, 1, False)
 CCD_MAX = (2100, 11, 30, False)
-CCD_ORDINAL_MIN = 1  # ChineseCalendarDate.MIN.to_ordinal()
-CCD_ORDINAL_MAX = 73029  # ChineseCalendarDate.MAX.to_ordinal()
+CCD_ORDINAL_MIN = 1  # FastCCD.MIN.to_ordinal()
+CCD_ORDINAL_MAX = 73029  # FastCCD.MAX.to_ordinal()
 DATAS = (
     0x1000,  # 1900
     0x0ea4, 0x1d4a, 0xb654, 0x0c96, 0x1536, 0x954d, 0x0ad4, 0x16b2, 0x5754, 0x0ea4,  # 1901-1910
@@ -103,8 +103,8 @@ def _check_date_range(y, m, d, leap) -> NoReturn:
         raise OverflowError(
             '超出支持范围。请使用范围更广的历法算法。\n'
             '本类支持的范围是：{0} 至 {1}'.format(
-                ChineseCalendarDate.MIN.strftime(),
-                ChineseCalendarDate.MAX.strftime(),
+                FastCCD.MIN.strftime(),
+                FastCCD.MAX.strftime(),
             )
         )
     prefix = '闰' if leap else ''
@@ -263,7 +263,7 @@ NEW_MOONS: dict[date, tuple] = {
 }
 
 
-class ChineseCalendarDate(object):
+class FastCCD(object):
     __slots__ = '_year', '_month', '_day', '_leap', '_hashcode'
 
     # 构造方法
@@ -407,7 +407,7 @@ class ChineseCalendarDate(object):
     fromordinal = from_ordinal
 
     def _replace(self, year=None, month=None, day=None, is_leap_month=None) -> Self:
-        return ChineseCalendarDate.__new__(
+        return FastCCD.__new__(
             type(self),
             self._year if year is None else year,
             self._month if month is None else month,
@@ -519,32 +519,32 @@ class ChineseCalendarDate(object):
     # 比较器
 
     def __eq__(self, other):
-        if isinstance(other, ChineseCalendarDate):
+        if isinstance(other, FastCCD):
             return self._cmp(other) == 0
         raise NotImplementedError
 
     def __le__(self, other):
-        if isinstance(other, ChineseCalendarDate):
+        if isinstance(other, FastCCD):
             return self._cmp(other) <= 0
         raise NotImplementedError
 
     def __lt__(self, other):
-        if isinstance(other, ChineseCalendarDate):
+        if isinstance(other, FastCCD):
             return self._cmp(other) < 0
         raise NotImplementedError
 
     def __ge__(self, other):
-        if isinstance(other, ChineseCalendarDate):
+        if isinstance(other, FastCCD):
             return self._cmp(other) >= 0
         raise NotImplementedError
 
     def __gt__(self, other):
-        if isinstance(other, ChineseCalendarDate):
+        if isinstance(other, FastCCD):
             return self._cmp(other) > 0
         raise NotImplementedError
 
     def _cmp(self, other):
-        assert isinstance(other, ChineseCalendarDate)
+        assert isinstance(other, FastCCD)
         x = self.timetuple()
         y = other.timetuple()
         return 0 if x == y else 1 if x > y else -1
@@ -651,24 +651,24 @@ class ChineseCalendarDate(object):
     toordinal = to_ordinal
 
 
-ChineseCalendarDate.MIN = ChineseCalendarDate(*CCD_MIN)
+FastCCD.MIN = FastCCD(*CCD_MIN)
 """
 当前模块支持计算的最早的农历日期。\n
 因为数据没有显示农历1900年十一月是不是闰月，故舍弃。
 """
 
-ChineseCalendarDate.MAX = ChineseCalendarDate(*CCD_MAX)
+FastCCD.MAX = FastCCD(*CCD_MAX)
 """
 当前模块支持计算的最晚的农历日期。\n
 因为数据没有显示农历2100年十二月是大月还是小月，故舍弃。
 """
 
-FastCCD = ChineseCalendarDate
+ChineseCalendarDate: TypeAlias = FastCCD
 
 if __name__ == '__main__':
-    ccd = ChineseCalendarDate.fromordinal(CCD_ORDINAL_MIN)
+    ccd = FastCCD.fromordinal(CCD_ORDINAL_MIN)
     assert ccd.timetuple() == CCD_MIN
     assert ccd.toordinal() == CCD_ORDINAL_MIN
-    ccd = ChineseCalendarDate.fromordinal(CCD_ORDINAL_MAX)
+    ccd = FastCCD.fromordinal(CCD_ORDINAL_MAX)
     assert ccd.timetuple() == CCD_MAX
     assert ccd.toordinal() == CCD_ORDINAL_MAX

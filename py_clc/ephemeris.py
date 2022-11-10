@@ -1,13 +1,13 @@
 import math
 from collections import OrderedDict
 from datetime import date, timedelta, datetime, time
-from typing import NoReturn, NamedTuple, Self
+from typing import NoReturn, NamedTuple, Self, TypeAlias
 
 import ephem
 
 from py_clc.base import (
     FastCCD,
-    _check_date_fields as _check_fields,
+    _check_date_fields,
 )
 
 DELTA = timedelta(hours=8)  # 零时区和东八区的时差
@@ -117,9 +117,9 @@ def _get_months(year: int):
     return _curr
 
 
-def _check_date_fields(y, m, d, leap) -> NoReturn:
+def _check_fields(y, m, d, leap) -> NoReturn:
     # 基础检查
-    _check_fields(y, m, d, leap)
+    _check_date_fields(y, m, d, leap)
     # 岁首在十一月，所以如果提供的农历月在十一月之后，就需要枚举下一个农历年的农历月。
     months = _enum_months(y if m < 11 else (y + 1))
     prefix = '闰' if leap else ''
@@ -133,10 +133,10 @@ def _check_date_fields(y, m, d, leap) -> NoReturn:
         )
 
 
-class ChineseCalendarDate(FastCCD):
+class EphemCCD(FastCCD):
 
     def __new__(cls, year, month=1, day=1, is_leap_month: bool = False):
-        _check_date_fields(year, month, day, is_leap_month)
+        _check_fields(year, month, day, is_leap_month)
         self = object.__new__(cls)
         self._year = year
         self._month = month
@@ -231,4 +231,4 @@ class ChineseCalendarDate(FastCCD):
     toordinal = to_ordinal
 
 
-EphemCCD = ChineseCalendarDate
+ChineseCalendarDate: TypeAlias = EphemCCD
