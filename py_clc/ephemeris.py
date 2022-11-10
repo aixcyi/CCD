@@ -1,7 +1,7 @@
 import math
 from collections import OrderedDict
 from datetime import date, timedelta, datetime, time
-from typing import NoReturn, NamedTuple
+from typing import NoReturn, NamedTuple, Self
 
 import ephem
 
@@ -146,7 +146,7 @@ class ChineseCalendarDate(FastCCD):
         return self
 
     @classmethod
-    def from_date(cls, _date: date) -> 'ChineseCalendarDate':
+    def from_date(cls, _date: date) -> Self:
         if not isinstance(_date, date):
             raise TypeError(
                 '只接受 datetime.date 及其衍生类型的公历日期。'
@@ -166,7 +166,7 @@ class ChineseCalendarDate(FastCCD):
                 return cls(_date.year, last_moon.ords, day, last_moon.is_leap)
 
     @classmethod
-    def from_ordinal(cls, n) -> 'ChineseCalendarDate':
+    def from_ordinal(cls, n) -> Self:
         return cls.from_date(date.fromordinal(n))
 
     fromordinal = from_ordinal

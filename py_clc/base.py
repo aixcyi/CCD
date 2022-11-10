@@ -3,7 +3,7 @@
 """
 import re
 from datetime import date, timedelta
-from typing import NamedTuple, NoReturn
+from typing import NamedTuple, NoReturn, Self
 
 STEMS = '甲乙丙丁戊己庚辛壬癸'
 BRANCHES = '子丑寅卯辰巳午未申酉戌亥'
@@ -293,7 +293,7 @@ class ChineseCalendarDate(object):
         return self
 
     @classmethod
-    def strptime(cls, string, fmt: str = '农历%Y年%b月%a'):
+    def strptime(cls, string, fmt: str = '农历%Y年%b月%a') -> Self:
         """
         将一个字符串按照指定格式转换为农历日期。
 
@@ -335,12 +335,12 @@ class ChineseCalendarDate(object):
         return cls(y, m, d, leap)
 
     @classmethod
-    def today(cls) -> 'ChineseCalendarDate':
+    def today(cls) -> Self:
         """获取今天对应的农历日期。"""
         return cls.from_date(date.today())
 
     @classmethod
-    def from_date(cls, _date: date) -> 'ChineseCalendarDate':
+    def from_date(cls, _date: date) -> Self:
         """
         将公历日期转换为农历日期。
 
@@ -375,7 +375,7 @@ class ChineseCalendarDate(object):
         return cls.__new__(cls, y, m, offset + 1, leap)
 
     @classmethod
-    def from_ordinal(cls, __n: int) -> 'ChineseCalendarDate':
+    def from_ordinal(cls, __n: int) -> Self:
         if not CCD_ORDINAL_MIN <= __n <= CCD_ORDINAL_MAX:
             raise OverflowError(
                 '超出农历日期范围。'
@@ -406,7 +406,7 @@ class ChineseCalendarDate(object):
 
     fromordinal = from_ordinal
 
-    def _replace(self, year=None, month=None, day=None, is_leap_month=None):
+    def _replace(self, year=None, month=None, day=None, is_leap_month=None) -> Self:
         return ChineseCalendarDate.__new__(
             type(self),
             self._year if year is None else year,
@@ -415,7 +415,7 @@ class ChineseCalendarDate(object):
             self._leap if is_leap_month not in (True, False) else is_leap_month,
         )
 
-    def replace(self, year=None, month=None, day=None, is_leap_month=None):
+    def replace(self, year=None, month=None, day=None, is_leap_month=None) -> Self:
         """
         使用日期的一部分替换当前的日期，从而生成一个新的农历日期。
 
