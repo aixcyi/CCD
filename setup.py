@@ -10,7 +10,7 @@ setup(
     version=ccd.__version__,
     packages=['ccd'],
     python_requires='>=3.11',
-    url='https://github.com/aixcyi/PyCLC',
+    url='https://github.com/aixcyi/CCD',
     license='MIT',
     author='aixcyi',
     author_email='75880483+aixcyi@users.noreply.github.com',
@@ -30,7 +30,7 @@ setup(
         "date", "calendar", "lunisolar", "datetime", "chinese", "time"
     ],
     project_urls={
-        "Source": "https://github.com/aixcyi/PyCLC",
-        "Tracker": "https://github.com/aixcyi/PyCLC/issues",
+        "Source": "https://github.com/aixcyi/CCD",
+        "Tracker": "https://github.com/aixcyi/CCD/issues",
     }
 )

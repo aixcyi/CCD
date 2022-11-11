@@ -1,6 +1,6 @@
-<h1 align="center">Chinese Lunisolar Calendar</h1>
+<h1 align="center">Chinese Calendar Date</h1>
 
-力求简单、稳定、高效的农历 Python 库。
+力求简单、稳定、高效的农历日期 Python 库。
 
 ## 功能一览
 
@@ -23,19 +23,19 @@
 #### 安装
 
 ```shell
-pip install PyCLC
+pip install CCD
 ```
 
 #### 使用
 
 ```python
 from datetime import date, timedelta
-from ccd import ChineseCalendarDate
+from ccd import FastCCD
 
 gcd = date.today()
 print(str(gcd))  # '2020-06-20'
 
-ccd = ChineseCalendarDate.from_date(gcd)
+ccd = FastCCD.from_date(gcd)
 print(str(ccd))  # '农历2020年闰四月廿九'
 print(repr(ccd))  # 'ccd.base.FastCCD(2020, 4, 29, True)'
 
@@ -51,15 +51,15 @@ print(str(gcd))  # '2020-06-21'
 
 农历日期类有以下几个：
 
-- `py_clc.EphemCCD`，需要安装 [PyEphem](https://pypi.org/project/ephem/) 库后才可用。
-- `py_clc.FastCCD`，无论何时都可用。
-- `py_clc.ChineseCalendarDate`，无论何时都可用。
+- `ccd.EphemCCD`，无限范围。需要安装 [PyEphem](https://pypi.org/project/ephem/) 库后才可用。
+- `ccd.FastCCD`，有限范围。无论何时都可用。
+- `ccd.ChineseCalendarDate`，无论何时都可用。
   - 默认情况下等同于 `FastCCD` 。
   - 安装 [PyEphem](https://pypi.org/project/ephem/) 库后等同于 `EphemCCD` 。
 
 
 ## 问题反馈
 
-码云：[https://gitee.com/aixcyi/py-clc/issues](https://gitee.com/aixcyi/py-clc/issues)  
-GitHub：[https://github.com/aixcyi/PyCLC/issues](https://github.com/aixcyi/PyCLC/issues)
+码云：[https://gitee.com/aixcyi/CCD/issues](https://gitee.com/aixcyi/CCD/issues)  
+GitHub：[https://github.com/aixcyi/CCD/issues](https://github.com/aixcyi/CCD/issues)
 

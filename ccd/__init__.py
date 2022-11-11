@@ -6,7 +6,7 @@ except ImportError:
 
 from ccd.base import FastCCD
 
-__version__ = '0.1.2'
+__version__ = '0.2'
 
 if __name__ == '__main__':
     from datetime import date, timedelta
