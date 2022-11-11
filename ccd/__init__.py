@@ -1,10 +1,10 @@
 try:
     import ephem
-    from py_clc.ephemeris import ChineseCalendarDate, EphemCCD
+    from ccd.ephemeris import ChineseCalendarDate, EphemCCD
 except ImportError:
-    from py_clc.base import ChineseCalendarDate
+    from ccd.base import ChineseCalendarDate
 
-from py_clc.base import FastCCD
+from ccd.base import FastCCD
 
 __version__ = '0.1.2'
 

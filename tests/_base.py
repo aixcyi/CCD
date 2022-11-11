@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 from random import randint
 
-from py_clc.base import ChineseCalendarDate, CCD_ORDINAL_MIN, CCD_ORDINAL_MAX
+from ccd.base import ChineseCalendarDate, CCD_ORDINAL_MIN, CCD_ORDINAL_MAX
 from tests.utils import BearTimer
 
 

@@ -5,7 +5,7 @@ from typing import NoReturn, NamedTuple, Self, TypeAlias
 
 import ephem
 
-from py_clc.base import (
+from ccd.base import (
     FastCCD,
     _check_date_fields,
 )

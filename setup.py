@@ -1,14 +1,14 @@
 from setuptools import setup
 
-import py_clc
+import ccd
 
 with open('README.md', encoding='UTF-8') as f:
     long_description = f.read()
 
 setup(
-    name='PyCLC',
-    version=py_clc.__version__,
-    packages=['py_clc'],
+    name='CCD',
+    version=ccd.__version__,
+    packages=['ccd'],
     python_requires='>=3.11',
     url='https://github.com/aixcyi/PyCLC',
     license='MIT',
